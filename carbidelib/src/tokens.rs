@@ -42,5 +42,35 @@ pub enum Tokens {
     #[token(":")]
     Colon,
     #[token("~")]
-    Tilde
+    Tilde,
+    #[token(",")]
+    Comma,
+
+    // Boolean
+    #[token("&&")]
+    And,
+    #[token("||")]
+    Or,
+    #[token("!")]
+    Bang,
+    #[token("=")]
+    Equals,
+    #[token("==")]
+    EqualsEquals,
+    #[token("!=")]
+    NotEquals,
+
+    // Arithmetic
+    #[token("+")]
+    Plus,
+    #[token("-")]
+    Minus,
+    #[token("*")]
+    Star,
+    #[token("/")]
+    Slash,
+    #[token("%")]
+    Percent,
+    #[token("&")]
+    Ampersand,
 }
