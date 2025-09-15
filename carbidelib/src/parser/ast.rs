@@ -1,4 +1,4 @@
-use crate::{parser::errors::ASTError, tokens::Tokens};
+use crate::{errors::ASTError, tokens::Tokens};
 
 pub struct AST {
     pub index: usize,
