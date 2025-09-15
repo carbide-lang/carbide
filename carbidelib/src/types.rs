@@ -16,7 +16,7 @@ impl TryFrom<String> for Types {
             "float" => Ok(Types::Float),
             "string" => Ok(Types::String),
             "bool" => Ok(Types::Bool),
-            _ => Ok(Types::Literal(value))
+            _ => Ok(Types::Literal(value)),
         };
     }
 

@@ -1,4 +1,7 @@
-use crate::{parser::{nodes::Nodes, ops::BinaryOp}, types::Types};
+use crate::{
+    parser::{nodes::Nodes, ops::BinaryOp},
+    types::Types,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {

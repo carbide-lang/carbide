@@ -1,8 +1,10 @@
+pub mod ast;
+pub mod errors;
 pub mod expr;
 pub mod nodes;
 pub mod ops;
 
-use crate::{errors::ParserError, tokens::Tokens};
+use crate::{parser::errors::ParserError, tokens::Tokens};
 use logos::Logos;
 
 pub struct Parser {
