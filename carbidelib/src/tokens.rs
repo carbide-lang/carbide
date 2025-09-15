@@ -27,5 +27,20 @@ pub enum Tokens {
     Boolean(bool),
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| Some(lex.slice().to_string()))]
     Identifier(String),
-    
+
+    // Delimiters
+    #[token("(")]
+    LeftParen,
+    #[token(")")]
+    RightParen,
+    #[token("{")]
+    LeftBrace,
+    #[token("}")]
+    RightBrace,
+    #[token(";")]
+    Semicolon,
+    #[token(":")]
+    Colon,
+    #[token("~")]
+    Tilde
 }
