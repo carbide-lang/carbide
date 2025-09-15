@@ -1,5 +1,5 @@
 [workspace]
 resolver = "3"
-members = ["carbidec"]
+members = ["carbidec", "carbidelib"]
 
 [workspace.dependencies]
