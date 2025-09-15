@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod parser_test {
+mod string_tests {
     use carbidelib::{parser::Parser, tokens::Tokens};
 
     #[test]
