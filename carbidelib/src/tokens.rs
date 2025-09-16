@@ -93,6 +93,24 @@ pub enum Tokens {
     If,
     #[token("else")]
     Else,
+
+    // Comparison operators
+    #[token("<")]
+    Less,
+    #[token("<=")]
+    LessOrEq,
+    #[token(">")]
+    Greater,
+    #[token(">=")]
+    GreaterOrEq,
+
+    // Unary operators
+    #[token("--")]
+    MinusMinus,
+    #[token("++")]
+    PlusPlus,
+
+    NUL,
 }
 
 impl ToString for Tokens {

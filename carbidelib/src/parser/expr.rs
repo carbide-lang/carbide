@@ -1,5 +1,5 @@
 use crate::{
-    parser::{nodes::Nodes, ops::BinaryOp},
+    parser::{nodes::Nodes, ops::{BinaryOp, UnaryOp}},
     types::Types,
 };
 
@@ -12,7 +12,7 @@ pub enum Expr {
         right: Box<Expr>,
     },
     Unary {
-        operator: Box<BinaryOp>,
+        operator: Box<UnaryOp>,
         operand: Box<Expr>,
     },
     Assignment {
@@ -39,8 +39,8 @@ pub enum Expr {
         then_branch: Box<Expr>,
         else_branch: Option<Box<Expr>>,
     },
-    AddressOf(Box<Expr>),
-    Dereference(Box<Expr>),
+    // AddressOf(Box<Expr>),
+    // Dereference(Box<Expr>),
 }
 
 impl Expr {
