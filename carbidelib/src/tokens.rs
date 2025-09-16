@@ -73,4 +73,24 @@ pub enum Tokens {
     Percent,
     #[token("&")]
     Ampersand,
+
+    // Keywords
+    #[token("let")]
+    Let,
+    #[token("fn")]
+    Fn,
+    
+    #[token("loop")]
+    Loop,
+    #[token("break")]
+    Break,
+    #[token("continue")]
+    Continue,
+    #[token("return")]
+    Return,
+
+    #[token("if")]
+    If,
+    #[token("else")]
+    Else,
 }
