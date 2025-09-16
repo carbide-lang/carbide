@@ -79,7 +79,7 @@ pub enum Tokens {
     Let,
     #[token("fn")]
     Fn,
-    
+
     #[token("loop")]
     Loop,
     #[token("break")]
@@ -93,4 +93,16 @@ pub enum Tokens {
     If,
     #[token("else")]
     Else,
+}
+
+impl ToString for Tokens {
+    fn to_string(&self) -> String {
+        match self {
+            Tokens::Integer(n) => format!("<int {n}>"),
+            Tokens::Float(n) => format!("<float {n}>"),
+            Tokens::String(s) => format!("<string {s}>"),
+            Tokens::Boolean(b) => format!("<bool {b}>"),
+            _ => format!("{:?}", self)
+        }.to_string()
+    }
 }
