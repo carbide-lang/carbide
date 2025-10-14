@@ -3,9 +3,12 @@
 version = 4
 
 [[package]]
-name = "carbide-core"
+name = "carbide_core"
 version = "0.1.0"
 
 [[package]]
 name = "carbidec"
 version = "0.1.0"
+dependencies = [
+ "carbide_core",
+]
