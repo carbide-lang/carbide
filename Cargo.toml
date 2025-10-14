@@ -1,5 +1,5 @@
 [workspace]
 resolver = "3"
-members = []
+members = ["compiler/carbidec", "library/carbide-core"]
 
 [workspace.dependencies]
