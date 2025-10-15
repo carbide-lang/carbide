@@ -1,0 +1,123 @@
+use logos::Logos;
+
+use crate::errors::CarbideParserError;
+
+
+
+#[derive(Logos, Debug, PartialEq)]
+#[logos(error(CarbideParserError, CarbideParserError::from_lexer))]
+#[logos(skip r"[ \t]+")]
+pub enum Token {
+    #[regex(r"-?[0-9]+", |lex| lex.slice().parse::<i64>().ok())]
+    Integer(i64),
+    #[regex(r"-?[0-9]+\.[0-9]+", |lex| lex.slice().parse::<f64>().ok())]
+    Float(f64),
+    #[regex(r#""([^"\\]|\\[nrt"\\])*""#, |lex| {
+        let slice = lex.slice();
+
+        let content = &slice[1..slice.len()-1];
+        Some(content.replace("\\n", "\n")
+                   .replace("\\r", "\r")
+                   .replace("\\t", "\t")
+                   .replace("\\\"", "\"")
+                   .replace("\\\\", "\\"))
+    })]
+    String(String),
+    #[regex(r"true|false", |lex| match lex.slice() {
+        "true" => Some(true),
+        "false" => Some(false),
+        _ => None,
+    })]
+    Boolean(bool),
+    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| Some(lex.slice().to_string()))]
+    Identifier(String),
+
+    #[token("(")]
+    LeftParen,
+    #[token(")")]
+    RightParen,
+    #[token("{")]
+    LeftBrace,
+    #[token("}")]
+    RightBrace,
+    #[token(";")]
+    Semicolon,
+    #[token(":")]
+    Colon,
+    #[token("~")]
+    Tilde,
+    #[token(",")]
+    Comma,
+
+    #[token("&&")]
+    And,
+    #[token("||")]
+    Or,
+    #[token("!")]
+    Bang,
+    #[token("=")]
+    Equals,
+    #[token("==")]
+    EqualsEquals,
+    #[token("!=")]
+    NotEquals,
+
+    #[token("+")]
+    Plus,
+    #[token("-")]
+    Minus,
+    #[token("*")]
+    Star,
+    #[token("/")]
+    Slash,
+    #[token("%")]
+    Percent,
+    #[token("&")]
+    Ampersand,
+
+    #[token("let")]
+    Let,
+    #[token("fn")]
+    Fn,
+
+    #[token("loop")]
+    Loop,
+    #[token("break")]
+    Break,
+    #[token("continue")]
+    Continue,
+    #[token("return")]
+    Return,
+
+    #[token("if")]
+    If,
+    #[token("else")]
+    Else,
+
+    #[token("<")]
+    Less,
+    #[token("<=")]
+    LessOrEq,
+    #[token(">")]
+    Greater,
+    #[token(">=")]
+    GreaterOrEq,
+
+    #[token("--")]
+    MinusMinus,
+    #[token("++")]
+    PlusPlus,
+}
+
+impl ToString for Token {
+    fn to_string(&self) -> String {
+        match self {
+            Token::Integer(n) => format!("<int {n}>"),
+            Token::Float(n) => format!("<float {n}>"),
+            Token::String(s) => format!("<string {s}>"),
+            Token::Boolean(b) => format!("<bool {b}>"),
+            _ => format!("{:?}", self),
+        }
+        .to_string()
+    }
+}
