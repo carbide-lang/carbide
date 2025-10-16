@@ -38,7 +38,11 @@ impl<'a> CarbideParser<'a> {
         }
     }
 
-    pub fn parse_tokens(&mut self) -> Result<Vec<Token<'a>>, CarbideParserError> {
+    /// Attempt to parse the source into a list of [`Tokens`][Token]
+    ///
+    /// # Errors
+    /// Returns `Err` if parsing the source fails
+    pub fn parse(&mut self) -> Result<Vec<Token<'a>>, CarbideParserError> {
         let mut tokens = Vec::new();
 
         while !self.is_eof() {
@@ -61,20 +65,15 @@ impl<'a> CarbideParser<'a> {
                 continue;
             }
 
+            // Entry point for identifier parsing
             if ch.is_ascii_alphabetic() || ch == '_' {
-                self.consume_while(|c| c.is_ascii_alphanumeric() || c == '_');
-                let end = self.pos as u64;
-                let slice = &self.src[start as usize..end as usize];
-                tokens.push(Token {
-                    token_type: Tokens::Identifier(slice),
-                    span: start..end,
-                    src: slice,
-                });
+                let token = self.parse_identifier(start);
+                tokens.push(token);
                 continue;
             }
 
             if ch.is_ascii_digit() {
-                let token = self.consume_number(start)?;
+                let token = self.parse_number(start)?;
                 tokens.push(token);
                 continue;
             }
@@ -85,8 +84,14 @@ impl<'a> CarbideParser<'a> {
 
         Ok(tokens)
     }
+}
 
-    fn consume_number(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
+impl<'a> CarbideParser<'a> {
+    /// Attempt to parse a number [`Token`]
+    ///
+    /// # Errors
+    /// Returns `Err` if fails
+    fn parse_number(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
         if self.src[self.pos..].starts_with("0x") {
             self.pos += 2; // consume `0x`
             self.consume_while(|c| c.is_ascii_hexdigit());
@@ -98,10 +103,9 @@ impl<'a> CarbideParser<'a> {
             let hex_digits = &self.src[(start as usize + 2)..end as usize];
 
             return Ok(Token {
-                token_type: Tokens::HexLiteral(
-                    i64::from_str_radix(hex_digits, 16)
-                        .map_err(|e| CarbideParserError::InvalidHexLiteral(hex_digits.to_string(), e))?,
-                ),
+                token_type: Tokens::HexLiteral(i64::from_str_radix(hex_digits, 16).map_err(
+                    |e| CarbideParserError::InvalidHexLiteral(hex_digits.to_string(), e),
+                )?),
                 span: start..end,
                 src: slice,
             });
@@ -118,10 +122,9 @@ impl<'a> CarbideParser<'a> {
             let hex_digits = &self.src[(start as usize + 2)..end as usize];
 
             return Ok(Token {
-                token_type: Tokens::BinaryLiteral(
-                    i64::from_str_radix(hex_digits, 2)
-                        .map_err(|e| CarbideParserError::InvalidBinaryLiteral(hex_digits.to_string(), e))?,
-                ),
+                token_type: Tokens::BinaryLiteral(i64::from_str_radix(hex_digits, 2).map_err(
+                    |e| CarbideParserError::InvalidBinaryLiteral(hex_digits.to_string(), e),
+                )?),
                 span: start..end,
                 src: slice,
             });
@@ -146,16 +149,37 @@ impl<'a> CarbideParser<'a> {
 
         if has_dot {
             Ok(Token {
-                token_type: Tokens::FloatLiteral(slice.parse::<f64>().unwrap()),
+                token_type: Tokens::FloatLiteral(
+                    slice.parse::<f64>().map_err(|e| {
+                        CarbideParserError::InvalidFloatLiteral(slice.to_string(), e)
+                    })?,
+                ),
                 span: start..end,
                 src: slice,
             })
         } else {
             Ok(Token {
-                token_type: Tokens::IntLiteral(slice.parse::<i64>().unwrap()),
+                token_type: Tokens::IntLiteral(slice.parse::<i64>().map_err(|e| {
+                    CarbideParserError::InvalidIntegerLiteral(slice.to_string(), e)
+                })?),
                 span: start..end,
                 src: slice,
             })
+        }
+    }
+}
+
+impl<'a> CarbideParser<'a> {
+    /// Parses an indentifier, consumes
+    fn parse_identifier(&mut self, start: u64) -> Token<'a> {
+        self.consume_while(|c| c.is_ascii_alphanumeric() || c == '_');
+        let end = self.pos as u64;
+        let slice = &self.src[start as usize..end as usize];
+
+        Token {
+            token_type: Tokens::Identifier(slice),
+            span: start..end,
+            src: slice,
         }
     }
 }

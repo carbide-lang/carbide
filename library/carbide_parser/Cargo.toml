@@ -5,3 +5,8 @@ edition = "2024"
 
 [dependencies]
 thiserror = "2.0.17"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny" 

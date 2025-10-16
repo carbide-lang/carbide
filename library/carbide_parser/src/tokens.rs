@@ -27,6 +27,7 @@ pub struct Token<'a> {
 }
 
 impl<'a> Token<'a> {
+    #[must_use]
     pub fn new(token_type: Tokens<'a>, span: Span, src: &'a str) -> Self {
         Self {
             token_type,

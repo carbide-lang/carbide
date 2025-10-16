@@ -8,7 +8,7 @@ pub mod number_literals {
     fn valid_int() {
         let src = "100";
         let mut parser = CarbideParser::from_src(src);
-        let tokens = parser.parse_tokens().expect("Parsing should succeed");
+        let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
             vec![Token::new(
@@ -23,7 +23,7 @@ pub mod number_literals {
     fn valid_float() {
         let src = "0.5";
         let mut parser = CarbideParser::from_src(src);
-        let tokens = parser.parse_tokens().expect("Parsing should succeed");
+        let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
             vec![Token::new(
@@ -38,7 +38,7 @@ pub mod number_literals {
     fn valid_hex() {
         let src = "0xFF";
         let mut parser = CarbideParser::from_src(src);
-        let tokens = parser.parse_tokens().expect("Parsing should succeed");
+        let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
             vec![Token::new(
@@ -53,7 +53,7 @@ pub mod number_literals {
     fn valid_binary() {
         let src = "0b1010";
         let mut parser = CarbideParser::from_src(src);
-        let tokens = parser.parse_tokens().expect("Parsing should succeed");
+        let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
             vec![Token::new(

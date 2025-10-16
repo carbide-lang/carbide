@@ -1,4 +1,4 @@
-use std::num::ParseIntError;
+use std::num::{ParseFloatError, ParseIntError};
 
 use thiserror::Error;
 
@@ -8,6 +8,8 @@ pub enum CarbideParserError {
     NonASCIIChar(char),
     #[error("Unexpected end of input")]
     UnexpectedEOF,
+    #[error("Invalid float literal `{0}`: {1:#?}")]
+    InvalidFloatLiteral(String, ParseFloatError),
     #[error("Invalid integer literal `{0}`: {1:#?}")]
     InvalidIntegerLiteral(String, ParseIntError),
     #[error("Invalid hex literal `{0}`: {1:#?}")]
