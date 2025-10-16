@@ -9,6 +9,8 @@ pub enum Tokens<'a> {
     FloatLiteral(f64),
     /// A hexadecimal literal, like `0xFF`
     HexLiteral(i64),
+    /// A binary literal like `0b1010`
+    BinaryLiteral(i64),
     /// An indentifier, like `my_ident`
     Identifier(&'a str),
     /// Whitespace

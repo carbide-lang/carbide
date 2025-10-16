@@ -8,6 +8,10 @@ pub enum CarbideParserError {
     NonASCIIChar(char),
     #[error("Unexpected end of input")]
     UnexpectedEOF,
-    #[error("Failed to parse integer `{0}`: {1:#?}")]
-    InvalidInt(String, ParseIntError),
+    #[error("Invalid integer literal `{0}`: {1:#?}")]
+    InvalidIntegerLiteral(String, ParseIntError),
+    #[error("Invalid hex literal `{0}`: {1:#?}")]
+    InvalidHexLiteral(String, ParseIntError),
+    #[error("Invalid binary literal `{0}`: {1:#?}")]
+    InvalidBinaryLiteral(String, ParseIntError),
 }

@@ -88,7 +88,7 @@ impl<'a> CarbideParser<'a> {
 
     fn consume_number(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
         if self.src[self.pos..].starts_with("0x") {
-            self.pos += 2; // consume `0x``
+            self.pos += 2; // consume `0x`
             self.consume_while(|c| c.is_ascii_hexdigit());
 
             let end = self.pos as u64;
@@ -100,7 +100,27 @@ impl<'a> CarbideParser<'a> {
             return Ok(Token {
                 token_type: Tokens::HexLiteral(
                     i64::from_str_radix(hex_digits, 16)
-                        .map_err(|e| CarbideParserError::InvalidInt(hex_digits.to_string(), e))?,
+                        .map_err(|e| CarbideParserError::InvalidHexLiteral(hex_digits.to_string(), e))?,
+                ),
+                span: start..end,
+                src: slice,
+            });
+        }
+
+        if self.src[self.pos..].starts_with("0b") {
+            self.pos += 2; // consume `0b`
+            self.consume_while(|c| c == '0' || c == '1');
+
+            let end = self.pos as u64;
+            let slice = &self.src[start as usize..end as usize];
+
+            // Get a slice without `0b`
+            let hex_digits = &self.src[(start as usize + 2)..end as usize];
+
+            return Ok(Token {
+                token_type: Tokens::BinaryLiteral(
+                    i64::from_str_radix(hex_digits, 2)
+                        .map_err(|e| CarbideParserError::InvalidBinaryLiteral(hex_digits.to_string(), e))?,
                 ),
                 span: start..end,
                 src: slice,
