@@ -1,4 +1,4 @@
-use std::num::{ParseFloatError, ParseIntError};
+use std::num::{ParseFloatError, ParseIntError, TryFromIntError};
 
 use thiserror::Error;
 
@@ -16,4 +16,7 @@ pub enum CarbideParserError {
     InvalidHexLiteral(String, ParseIntError),
     #[error("Invalid binary literal `{0}`: {1:#?}")]
     InvalidBinaryLiteral(String, ParseIntError),
+
+    #[error("Failed to cast `{0}` as `{1}`: {2:#?}")]
+    CastIntFailed(String, String, TryFromIntError)
 }

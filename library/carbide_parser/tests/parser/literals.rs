@@ -1,8 +1,6 @@
 #[cfg(test)]
 pub mod number_literals {
-    use std::num::ParseIntError;
-
-    use carbide_parser::{errors::CarbideParserError, parser::CarbideParser, tokens::Token};
+    use carbide_parser::{parser::CarbideParser, tokens::Token};
 
     #[test]
     fn valid_int() {
