@@ -15,8 +15,6 @@ pub enum Tokens<'a> {
     BinaryLiteral(i64),
     /// An indentifier, like `my_ident`
     Identifier(&'a str),
-    /// Whitespace
-    Whitespace,
     /// A keyword, like `let` or `fn`
     Keyword(Keywords)
 }

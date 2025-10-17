@@ -1,6 +1,9 @@
 #[cfg(test)]
 pub mod identifier {
-    use carbide_parser::{parser::CarbideParser, tokens::{Token, Tokens}};
+    use carbide_parser::{
+        parser::CarbideParser,
+        tokens::{Token, Tokens},
+    };
 
     #[test]
     fn valid_snakecase() {
@@ -9,11 +12,7 @@ pub mod identifier {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                Tokens::Identifier("my_ident"),
-                0..8,
-                "my_ident"
-            )]
+            vec![Token::new(Tokens::Identifier("my_ident"), 0..8, "my_ident")]
         )
     }
 
@@ -24,11 +23,7 @@ pub mod identifier {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                Tokens::Identifier("myIdent"),
-                0..7,
-                "myIdent"
-            )]
+            vec![Token::new(Tokens::Identifier("myIdent"), 0..7, "myIdent")]
         )
     }
 
@@ -39,11 +34,7 @@ pub mod identifier {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                Tokens::Identifier("MyIdent"),
-                0..7,
-                "MyIdent"
-            )]
+            vec![Token::new(Tokens::Identifier("MyIdent"), 0..7, "MyIdent")]
         )
     }
 
@@ -54,11 +45,7 @@ pub mod identifier {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                Tokens::Identifier("My_IDENT"),
-                0..8,
-                "My_IDENT"
-            )]
+            vec![Token::new(Tokens::Identifier("My_IDENT"), 0..8, "My_IDENT")]
         )
     }
 
@@ -69,15 +56,10 @@ pub mod identifier {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                Tokens::IntLiteral(0),
-                0..1,
-                "0"
-            ),Token::new(
-                Tokens::Identifier("ident"),
-                1..6,
-                "ident"
-            )]
+            vec![
+                Token::new(Tokens::IntLiteral(0), 0..1, "0"),
+                Token::new(Tokens::Identifier("ident"), 1..6, "ident")
+            ]
         )
     }
 
@@ -88,11 +70,7 @@ pub mod identifier {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                Tokens::Identifier("ident0"),
-                0..6,
-                "ident0"
-            )]
+            vec![Token::new(Tokens::Identifier("ident0"), 0..6, "ident0")]
         )
     }
 
@@ -103,11 +81,44 @@ pub mod identifier {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                Tokens::Identifier("_ident"),
-                0..6,
-                "_ident"
-            )]
+            vec![Token::new(Tokens::Identifier("_ident"), 0..6, "_ident")]
         )
+    }
+}
+
+#[cfg(test)]
+pub mod keyword {
+    use carbide_parser::{
+        keywords::Keywords,
+        parser::CarbideParser,
+        tokens::{Token, Tokens},
+    };
+
+    #[test]
+    fn all_keywords() {
+        let src = Keywords::ALL
+            .iter()
+            .map(|kw| kw.as_str())
+            .collect::<Vec<&str>>()
+            .join(" ");
+
+        let mut parser = CarbideParser::from_src(&src);
+        let tokens = parser.parse().expect("Parsing should succeed");
+
+        let mut expected = Vec::new();
+        let mut start = 0usize;
+
+        for kw in Keywords::ALL {
+            let lit = kw.as_str();
+            let end = start + lit.len();
+            expected.push(Token::new(
+                Tokens::Keyword(*kw),
+                start as u64..end as u64,
+                lit,
+            ));
+            start = end + 1;
+        }
+
+        assert_eq!(tokens, expected);
     }
 }

@@ -64,14 +64,7 @@ impl<'a> CarbideParser<'a> {
             }
 
             if ch.is_ascii_whitespace() {
-                self.consume_while(|c| c.is_ascii_whitespace());
-                let end = self.pos as u64;
-                let slice = &self.src[usize_from!(start)..usize_from!(end)];
-                tokens.push(Token {
-                    token_type: Tokens::Whitespace,
-                    span: start..end,
-                    src: slice,
-                });
+                self.next();
                 continue;
             }
 
