@@ -1,4 +1,4 @@
-name: Rust
+name: Rust CI
 
 on:
   push:
@@ -10,26 +10,99 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  setup:
+    name: Setup & Cache
     runs-on: ubuntu-latest
+    outputs:
+      rust-cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Generate cache key
+        id: cache-key
+        run: echo "key=$(date +'%Y-%m')" >> $GITHUB_OUTPUT
+
+      - name: Cache cargo
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
           components: clippy, rustfmt
 
+  build:
+    name: Build
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ needs.setup.outputs.rust-cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - name: Build
         run: cargo build --verbose
 
+  test:
+    name: Run Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ needs.setup.outputs.rust-cache-key }}
       - name: Run tests
         run: cargo test --verbose
 
-      - name: Run Clippy (lint)
+  clippy:
+    name: Lint (Clippy)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ needs.setup.outputs.rust-cache-key }}
+      - name: Run Clippy
         run: cargo clippy -- -D warnings
 
+  fmt:
+    name: Check Formatting
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ needs.setup.outputs.rust-cache-key }}
       - name: Check formatting
         run: cargo fmt -- --check
