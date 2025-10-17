@@ -35,10 +35,9 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: actions/setup-rust@v2
         with:
-          toolchain: stable
-          override: true
+          rust-version: stable
           components: clippy, rustfmt
 
   build:
