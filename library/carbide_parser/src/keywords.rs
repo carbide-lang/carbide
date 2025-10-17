@@ -12,6 +12,7 @@ macro_rules! define_keywords {
                 $(Self::$kw),*
             ];
 
+            #[must_use]
             pub fn as_str(&self) -> &'static str {
                 match self {
                     $(Self::$kw => $lit),*
