@@ -6,8 +6,12 @@ use thiserror::Error;
 pub enum CarbideParserError {
     #[error("`{0}` is not an ASCII char!")]
     NonASCIIChar(char),
+
     #[error("Unexpected end of input")]
     UnexpectedEOF,
+    #[error("Unexpected character `{0}`")]
+    UnexpectedChar(char),
+
     #[error("Invalid float literal `{0}`: {1:#?}")]
     InvalidFloatLiteral(String, ParseFloatError),
     #[error("Invalid integer literal `{0}`: {1:#?}")]
@@ -16,7 +20,9 @@ pub enum CarbideParserError {
     InvalidHexLiteral(String, ParseIntError),
     #[error("Invalid binary literal `{0}`: {1:#?}")]
     InvalidBinaryLiteral(String, ParseIntError),
-
+    
     #[error("Failed to cast `{0}` as `{1}`: {2:#?}")]
-    CastIntFailed(String, String, TryFromIntError)
+    CastIntFailed(String, String, TryFromIntError),
+    #[error("Failed to cast `{0}` as a keyword")]
+    CastKeywordFailed(String),
 }

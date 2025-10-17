@@ -1,6 +1,9 @@
 #[cfg(test)]
 pub mod number_literals {
-    use carbide_parser::{parser::CarbideParser, tokens::Token};
+    use carbide_parser::{
+        parser::CarbideParser,
+        tokens::{Token, Tokens},
+    };
 
     #[test]
     fn valid_int() {
@@ -9,11 +12,7 @@ pub mod number_literals {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                carbide_parser::tokens::Tokens::IntLiteral(100),
-                0..3,
-                "100"
-            )]
+            vec![Token::new(Tokens::IntLiteral(100), 0..3, "100")]
         )
     }
 
@@ -24,11 +23,7 @@ pub mod number_literals {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                carbide_parser::tokens::Tokens::FloatLiteral(0.5),
-                0..3,
-                "0.5"
-            )]
+            vec![Token::new(Tokens::FloatLiteral(0.5), 0..3, "0.5")]
         )
     }
 
@@ -39,11 +34,7 @@ pub mod number_literals {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                carbide_parser::tokens::Tokens::HexLiteral(0xFF),
-                0..4,
-                "0xFF"
-            )]
+            vec![Token::new(Tokens::HexLiteral(0xFF), 0..4, "0xFF")]
         )
     }
 
@@ -54,11 +45,7 @@ pub mod number_literals {
         let tokens = parser.parse().expect("Parsing should succeed");
         assert_eq!(
             tokens,
-            vec![Token::new(
-                carbide_parser::tokens::Tokens::BinaryLiteral(0b1010),
-                0..6,
-                "0b1010"
-            )]
+            vec![Token::new(Tokens::BinaryLiteral(0b1010), 0..6, "0b1010")]
         )
     }
 }

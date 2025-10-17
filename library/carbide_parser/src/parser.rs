@@ -1,4 +1,5 @@
 use crate::errors::CarbideParserError;
+use crate::keywords::Keywords;
 use crate::tokens::{Token, Tokens};
 
 pub struct CarbideParser<'a> {
@@ -74,7 +75,6 @@ impl<'a> CarbideParser<'a> {
                 continue;
             }
 
-            // Entry point for identifier parsing
             if ch.is_ascii_alphabetic() || ch == '_' {
                 let token = self.parse_identifier(start)?;
                 tokens.push(token);
@@ -87,8 +87,8 @@ impl<'a> CarbideParser<'a> {
                 continue;
             }
 
-            // TODO: Throw err
-            self.next();
+            // Throw an error since parsing should catch everything
+            return Err(CarbideParserError::UnexpectedChar(ch))
         }
 
         Ok(tokens)
@@ -179,15 +179,24 @@ impl<'a> CarbideParser<'a> {
 }
 
 impl<'a> CarbideParser<'a> {
-    /// Parses an indentifier, consumes
+    /// Attempts to parse an identifier
+    /// 
+    /// # Errors
+    /// Returns `Err` if parsing the identifier fails
     fn parse_identifier(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
         self.consume_while(|c| c.is_ascii_alphanumeric() || c == '_');
         let end = self.pos as u64;
 
         let slice = &self.src[usize_from!(start)..usize_from!(end)];
 
+        let token_type = if let Ok(keyword) = Keywords::try_from(slice) {
+            Tokens::Keyword(keyword)
+        } else {
+            Tokens::Identifier(slice)
+        };
+
         Ok(Token {
-            token_type: Tokens::Identifier(slice),
+            token_type,
             span: start..end,
             src: slice,
         })

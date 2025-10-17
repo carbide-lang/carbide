@@ -1,6 +1,8 @@
 use std::fmt;
 use std::ops::Range;
 
+use crate::keywords::Keywords;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tokens<'a> {
     /// Integer literal, like `100`
@@ -15,6 +17,8 @@ pub enum Tokens<'a> {
     Identifier(&'a str),
     /// Whitespace
     Whitespace,
+    /// A keyword, like `let` or `fn`
+    Keyword(Keywords)
 }
 
 pub type Span = Range<u64>;
