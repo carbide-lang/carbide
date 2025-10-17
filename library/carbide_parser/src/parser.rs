@@ -81,7 +81,7 @@ impl<'a> CarbideParser<'a> {
             }
 
             // Throw an error since parsing should catch everything
-            return Err(CarbideParserError::UnexpectedChar(ch))
+            return Err(CarbideParserError::UnexpectedChar(ch));
         }
 
         Ok(tokens)
@@ -173,7 +173,7 @@ impl<'a> CarbideParser<'a> {
 
 impl<'a> CarbideParser<'a> {
     /// Attempts to parse an identifier
-    /// 
+    ///
     /// # Errors
     /// Returns `Err` if parsing the identifier fails
     fn parse_identifier(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {

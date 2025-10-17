@@ -16,7 +16,7 @@ pub enum Tokens<'a> {
     /// An indentifier, like `my_ident`
     Identifier(&'a str),
     /// A keyword, like `let` or `fn`
-    Keyword(Keywords)
+    Keyword(Keywords),
 }
 
 pub type Span = Range<u64>;
