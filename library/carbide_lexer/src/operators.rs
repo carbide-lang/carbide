@@ -83,9 +83,15 @@ define_bin_ops! {
     EqEq => "==",
     NotEq  => "!=",
 
-    Eq => "="
+    Eq => "=",
+    Plus => "+",
+    Minus => "-",
+    Star => "*",
+    Slash => "/",
+
 }
 
 define_unary_ops! {
     Not => "!",
+
 }

@@ -24,14 +24,20 @@ impl<'a> CarbideLexer<'a> {
         Self { src, pos: 0 }
     }
 
+    /// Check if `pos` is at the EOI
+    #[inline]
     fn is_eof(&self) -> bool {
         self.pos >= self.src.len()
     }
 
+    /// Get the next char in `src`
+    #[inline]
     fn peek(&self) -> Option<char> {
         self.src[self.pos..].chars().next()
     }
 
+    /// If there is a next char, increment pos
+    #[inline]
     fn next(&mut self) -> Option<char> {
         if let Some(ch) = self.peek() {
             self.pos += ch.len_utf8();
@@ -41,6 +47,8 @@ impl<'a> CarbideLexer<'a> {
         }
     }
 
+    /// Consume chars while the `cond` is valid
+    #[inline]
     fn consume_while<F: FnMut(char) -> bool>(&mut self, mut cond: F) {
         while let Some(ch) = self.peek() {
             if cond(ch) {
@@ -51,6 +59,56 @@ impl<'a> CarbideLexer<'a> {
         }
     }
 
+    /// Skip over whitespace and comments
+    fn skip_whitespace_and_comments(&mut self) -> Result<(), CarbideLexerError> {
+        loop {
+            if let Some(ch) = self.peek() {
+                if ch.is_ascii_whitespace() {
+                    self.next();
+                    continue;
+                }
+            }
+
+            if self.src[self.pos..].starts_with("//") {
+                self.pos += 2;
+                self.consume_while(|c| c != '\n');
+                continue;
+            }
+
+            if self.src[self.pos..].starts_with("/*") {
+                self.skip_nested_comment()?;
+                continue;
+            }
+
+            break;
+        }
+
+        return Ok(());
+    }
+
+    fn skip_nested_comment(&mut self) -> Result<(), CarbideLexerError> {
+        self.pos += 2;
+        let mut depth = 1;
+
+        while !self.is_eof() && depth > 0 {
+            if self.src[self.pos..].starts_with("/*") {
+                self.pos += 2;
+                depth += 1;
+            } else if self.src[self.pos..].starts_with("*/") {
+                self.pos += 2;
+                depth -= 1;
+            } else {
+                self.next();
+            }
+        }
+
+        if depth > 0 {
+            return Err(CarbideLexerError::UnclosedComment);
+        }
+
+        return Ok(());
+    }
+
     /// Attempt to lex the source into a list of [`Tokens`][Token]
     ///
     /// # Errors
@@ -59,16 +117,17 @@ impl<'a> CarbideLexer<'a> {
         let mut tokens = Vec::new();
 
         while !self.is_eof() {
+            self.skip_whitespace_and_comments()?;
+
+            if self.is_eof() {
+                break;
+            }
+
             let start = self.pos as u64;
             let ch = self.peek().ok_or(CarbideLexerError::UnexpectedEOF)?;
 
             if !ch.is_ascii() {
                 return Err(CarbideLexerError::NonASCIIChar(ch));
-            }
-
-            if ch.is_ascii_whitespace() {
-                self.next();
-                continue;
             }
 
             if ch.is_ascii_alphabetic() || ch == '_' {
@@ -173,9 +232,11 @@ impl<'a> CarbideLexer<'a> {
             })
         } else {
             Ok(Token {
-                token_type: Tokens::IntLiteral(slice.parse::<i64>().map_err(|e| {
-                    CarbideLexerError::InvalidIntegerLiteral(slice.to_string(), e)
-                })?),
+                token_type: Tokens::IntLiteral(
+                    slice.parse::<i64>().map_err(|e| {
+                        CarbideLexerError::InvalidIntegerLiteral(slice.to_string(), e)
+                    })?,
+                ),
                 span: start..end,
                 src: slice,
             })

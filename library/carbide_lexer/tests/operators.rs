@@ -1,8 +1,8 @@
 #[cfg(test)]
 pub mod binary {
     use carbide_lexer::{
-        operators::{BinaryOperators, UnaryOperators},
         lexer::CarbideLexer,
+        operators::{BinaryOperators, UnaryOperators},
         tokens::{Token, Tokens},
     };
 

@@ -29,4 +29,7 @@ pub enum CarbideLexerError {
     CastBinaryOpFailed(String),
     #[error("Failed to cast `{0}` as a unary operator")]
     CastUnaryOpFailed(String),
+
+    #[error("Unclosed comment")]
+    UnclosedComment,
 }
