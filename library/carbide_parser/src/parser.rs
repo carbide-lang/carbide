@@ -9,10 +9,10 @@ pub struct CarbideParser<'a> {
 }
 
 /// Attempt to cast a `u64` as a `usize`
-/// 
+///
 /// # Errors
 /// Returns `Err` if the u64 fails to cast to `usize`
-#[inline(always)]
+#[inline]
 fn usize_from(v: u64) -> Result<usize, CarbideParserError> {
     usize::try_from(v)
         .map_err(|e| CarbideParserError::CastIntFailed(v.to_string(), "usize".to_string(), e))
@@ -85,6 +85,11 @@ impl<'a> CarbideParser<'a> {
 
             if BinaryOperators::starts_with(ch) || UnaryOperators::starts_with(ch) {
                 let token = self.parse_operator(start)?;
+                tokens.push(token);
+                continue;
+            }
+
+            if let Some(token) = self.parse_single_char(start)? {
                 tokens.push(token);
                 continue;
             }
@@ -249,5 +254,27 @@ impl<'a> CarbideParser<'a> {
         Err(CarbideParserError::UnexpectedChar(
             op.chars().next().ok_or(CarbideParserError::UnexpectedEOF)?,
         ))
+    }
+}
+
+impl<'a> CarbideParser<'a> {
+    /// Attempt to parse a single-character token (`()[]{},;:`)
+    fn parse_single_char(&mut self, start: u64) -> Result<Option<Token<'a>>, CarbideParserError> {
+        if let Some(ch) = self.peek() {
+            if Tokens::starts_with(ch) {
+                self.next();
+                let end = self.pos as u64;
+                let slice = &self.src[usize_from(start)?..usize_from(end)?];
+
+                if let Some(token_type) = Tokens::from_char(ch) {
+                    return Ok(Some(Token {
+                        token_type,
+                        span: start..end,
+                        src: slice,
+                    }));
+                }
+            }
+        }
+        Ok(None)
     }
 }

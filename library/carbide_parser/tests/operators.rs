@@ -34,7 +34,7 @@ pub mod binary {
         assert_eq!(tokens, expected);
     }
 
-     #[test]
+    #[test]
     fn all_unary() {
         let src = UnaryOperators::ALL
             .iter()

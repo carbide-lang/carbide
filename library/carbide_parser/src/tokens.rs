@@ -22,6 +22,50 @@ pub enum Tokens<'a> {
     BinaryOperator(BinaryOperators),
     /// A unary operator, like `!`
     UnaryOperator(UnaryOperators),
+
+    LeftParen,
+    RightParen,
+    LeftBracket,
+    RightBracket,
+    LeftBrace,
+    RightBrace,
+    Semicolon,
+    Colon,
+}
+
+macro_rules! define_single_char_tokens {
+    ($($variant:ident => $char:literal),* $(,)?) => {
+        impl Tokens<'_> {
+            /// Attempt to parse a single char token
+            #[must_use]
+            pub fn from_char(ch: char) -> Option<Self> {
+                match ch {
+                    $($char => Some(Self::$variant),)*
+                    _ => None,
+                }
+            }
+
+            /// Returns `true` if the char can start a char token
+            #[must_use]
+            pub fn starts_with(ch: char) -> bool {
+                match ch {
+                    $($char => true,)*
+                    _ => false,
+                }
+            }
+        }
+    };
+}
+
+define_single_char_tokens! {
+    LeftParen => '(',
+    RightParen => ')',
+    LeftBracket => '[',
+    RightBracket => ']',
+    LeftBrace => '{',
+    RightBrace => '}',
+    Semicolon => ';',
+    Colon => ':',
 }
 
 pub type Span = Range<u64>;
