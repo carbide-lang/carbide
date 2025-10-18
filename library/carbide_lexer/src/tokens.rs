@@ -19,6 +19,14 @@ impl fmt::Display for SourceLocation {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum StringPart {
+    /// Literal text within the string
+    Text(String),
+    /// An interpolation placeholder like `{name}`
+    Interpolation(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Tokens<'a> {
     /// Integer literal, like `100`
     IntLiteral(i64),
@@ -26,8 +34,12 @@ pub enum Tokens<'a> {
     FloatLiteral(f64),
     /// A hexadecimal literal, like `0xFF`
     HexLiteral(i64),
-    /// A binary literal like `0b1010`
+    /// A binary literal, like `0b1010`
     BinaryLiteral(i64),
+    /// A string literal, like `"Hello World"`
+    StringLiteral(String),
+    /// An interpolated string with `{}`, like `"Hello {name}"`
+    InterpolatedString(Vec<StringPart>),
     /// An indentifier, like `my_ident`
     Identifier(&'a str),
     /// A keyword, like `let` or `fn`

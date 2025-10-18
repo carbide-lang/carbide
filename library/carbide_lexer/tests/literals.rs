@@ -225,3 +225,115 @@ pub mod number_literals {
         assert_eq!(tokens[2].token_type, Tokens::BinaryLiteral(0));
     }
 }
+
+#[cfg(test)]
+pub mod string_literals {
+    use carbide_lexer::{
+        errors::CarbideLexerError,
+        lexer::CarbideLexer,
+        tokens::{SourceLocation, StringPart, Tokens},
+    };
+
+    #[test]
+    fn regular_string() {
+        let src = r#" "Hello World!" "#;
+        let mut lexer = CarbideLexer::from_src(src);
+        let result = lexer.lex();
+
+        assert!(result.is_ok());
+        let tokens = result.tokens;
+
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].token_type, Tokens::StringLiteral("Hello World!".to_string()));
+    }
+
+    #[test]
+    fn interpolated_string() {
+        let src = r#" "Hello {name}!" "#;
+        let mut lexer = CarbideLexer::from_src(src);
+        let result = lexer.lex();
+
+        assert!(result.is_ok());
+        let tokens = result.tokens;
+
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(
+            tokens[0].token_type,
+            Tokens::InterpolatedString(vec![
+                StringPart::Text("Hello ".to_string()),
+                StringPart::Interpolation("name".to_string()),
+                StringPart::Text("!".to_string())
+            ])
+        );
+    }
+
+    #[test]
+    fn escaped_string() {
+        let src = r#" "The letter \"A\"" "#;
+        let mut lexer = CarbideLexer::from_src(src);
+        let result = lexer.lex();
+
+        dbg!(&result.errors);
+        assert!(result.is_ok());
+        let tokens = result.tokens;
+
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(
+            tokens[0].token_type,
+            Tokens::StringLiteral("The letter \"A\"".to_string())
+        );
+    }
+
+    #[test]
+    fn escaped_sequences() {
+        let src = r#" "\\ \n \t \0 \'" "#;
+        let mut lexer = CarbideLexer::from_src(src);
+        let result = lexer.lex();
+
+        dbg!(&result.errors);
+        assert!(result.is_ok());
+        let tokens = result.tokens;
+
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(
+            tokens[0].token_type,
+            Tokens::StringLiteral("\\ \n \t \0 \'".to_string())
+        );
+    }
+
+    #[test]
+    fn unclosed_escaped_quote() {
+        let src = r#" "\" "#;
+        let mut lexer = CarbideLexer::from_src(src);
+        let result = lexer.lex();
+
+        assert!(!result.is_ok());
+
+        assert_eq!(
+            result.errors[0],
+            CarbideLexerError::UnclosedString(SourceLocation {
+                line: 1,
+                column: 2,
+                offset: 1
+            })
+        );
+    }
+
+    #[test]
+    fn unclosed_no_quote() {
+        let src = r#" "Hello World! "#;
+        let mut lexer = CarbideLexer::from_src(src);
+        let result = lexer.lex();
+
+        assert!(!result.is_ok());
+
+        assert_eq!(
+            result.errors[0],
+            CarbideLexerError::UnclosedString(SourceLocation {
+                line: 1,
+                column: 2,
+                offset: 1
+            })
+        );
+    }
+}

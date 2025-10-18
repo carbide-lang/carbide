@@ -34,4 +34,8 @@ pub enum CarbideLexerError {
 
     #[error("Unclosed comment at [{0}]")]
     UnclosedComment(SourceLocation),
+    #[error("Unclosed string at [{0}]")]
+    UnclosedString(SourceLocation),
+    #[error("Unmatched brace in interpolated string at [{0}]")]
+    UnmatchedBrace(SourceLocation),
 }

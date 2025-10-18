@@ -1,7 +1,7 @@
 use crate::errors::CarbideLexerError;
 use crate::keywords::Keywords;
 use crate::operators::{BinaryOperators, UnaryOperators};
-use crate::tokens::{SourceLocation, Token, Tokens};
+use crate::tokens::{SourceLocation, StringPart, Token, Tokens};
 
 pub struct CarbideLexer<'a> {
     src: &'a str,
@@ -218,6 +218,19 @@ impl<'a> CarbideLexer<'a> {
                     Err(e) => {
                         errors.push(e);
                         self.recover_from_error();
+                    }
+                }
+                continue;
+            }
+
+            if ch == '"' {
+                match self.lex_string(start, start_loc) {
+                    Ok(Some(t)) => tokens.push(t),
+                    Ok(None) => {}
+                    Err(e) => {
+                        errors.push(e);
+                        self.recover_from_error();
+                        continue;
                     }
                 }
                 continue;
@@ -532,5 +545,186 @@ impl<'a> CarbideLexer<'a> {
             }
         }
         Ok(None)
+    }
+}
+
+impl<'a> CarbideLexer<'a> {
+    /// Attempt to lex a string
+    ///
+    /// # Errors
+    /// Returns `Err` if parsing the source fails
+    fn lex_string(
+        &mut self,
+        start: u64,
+        start_loc: SourceLocation,
+    ) -> Result<Option<Token<'a>>, CarbideLexerError> {
+        if let Some(ch) = self.peek()
+            && ch == '"'
+        {
+            self.next();
+            let string_start = self.pos;
+            let mut has_interpolation = false;
+
+            loop {
+                if self.is_eof() {
+                    return Err(CarbideLexerError::UnclosedString(start_loc));
+                }
+
+                if let Some(ch) = self.peek() {
+                    if ch == '"' {
+                        break;
+                    } else if ch == '\\' {
+                        self.next();
+                        if !self.is_eof() {
+                            self.next();
+                        }
+                    } else if ch == '{' {
+                        has_interpolation = true;
+                        self.next();
+                    } else {
+                        self.next();
+                    }
+                }
+            }
+
+            let raw_string = &self.src[string_start..self.pos];
+            self.next();
+
+            let end = self.pos as u64;
+            let end_loc = self.current_location();
+            let full_slice = &self.src[usize_from(start)?..usize_from(end)?];
+
+            if has_interpolation {
+                let parts = self.lex_interpolated_string(raw_string, start_loc)?;
+                return Ok(Some(Token {
+                    token_type: Tokens::InterpolatedString(parts),
+                    start: start_loc,
+                    end: end_loc,
+                    span: start..end,
+                    src: full_slice,
+                }));
+            } else {
+                let content = self.unescape_string(raw_string)?;
+                return Ok(Some(Token {
+                    token_type: Tokens::StringLiteral(content),
+                    start: start_loc,
+                    end: end_loc,
+                    span: start..end,
+                    src: full_slice,
+                }));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Attempt to unescape a string
+    ///
+    /// # Errors
+    /// Returns `Err` if lexing the source fails
+    fn unescape_string(&self, raw: &str) -> Result<String, CarbideLexerError> {
+        let mut result = String::new();
+        let mut chars = raw.chars().peekable();
+
+        while let Some(ch) = chars.next() {
+            if ch == '\\' {
+                if let Some(next_ch) = chars.next() {
+                    match next_ch {
+                        'n' => result.push('\n'),
+                        't' => result.push('\t'),
+                        'r' => result.push('\r'),
+                        '\\' => result.push('\\'),
+                        '"' => result.push('"'),
+                        '\'' => result.push('\''),
+                        '0' => result.push('\0'),
+                        _ => {
+                            // TODO: Maybe push a warning about unknown escape sequences
+                            result.push('\\');
+                            result.push(next_ch);
+                        }
+                    }
+                } else {
+                    result.push('\\');
+                }
+            } else {
+                result.push(ch);
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// Attempt to lex an interpolated string
+    ///
+    /// # Errors
+    /// Returns `Err` if lexing the source fails
+    fn lex_interpolated_string(
+        &self,
+        raw: &str,
+        loc: SourceLocation,
+    ) -> Result<Vec<StringPart>, CarbideLexerError> {
+        let mut parts = Vec::new();
+        let mut current = 0;
+        let bytes = raw.as_bytes();
+
+        while current < bytes.len() {
+            let mut text_end = current;
+            let mut in_escape = false;
+
+            while text_end < bytes.len() {
+                if in_escape {
+                    in_escape = false;
+                    text_end += 1;
+                    continue;
+                }
+
+                match bytes[text_end] {
+                    b'\\' => {
+                        in_escape = true;
+                        text_end += 1;
+                    }
+                    b'{' => break,
+                    _ => text_end += 1,
+                }
+            }
+
+            if text_end > current {
+                let text = &raw[current..text_end];
+                let unescaped = self.unescape_string(text)?;
+                if !unescaped.is_empty() {
+                    parts.push(StringPart::Text(unescaped));
+                }
+            }
+
+            if text_end >= bytes.len() {
+                break;
+            }
+
+            if bytes[text_end] == b'{' {
+                text_end += 1;
+                let interp_start = text_end;
+
+                let mut brace_depth = 1;
+                while text_end < bytes.len() && brace_depth > 0 {
+                    match bytes[text_end] {
+                        b'{' => brace_depth += 1,
+                        b'}' => brace_depth -= 1,
+                        _ => {}
+                    }
+                    if brace_depth > 0 {
+                        text_end += 1;
+                    }
+                }
+
+                if brace_depth != 0 {
+                    return Err(CarbideLexerError::UnmatchedBrace(loc));
+                }
+
+                let interp = &raw[interp_start..text_end];
+                parts.push(StringPart::Interpolation(interp.to_string()));
+                current = text_end + 1;
+            }
+        }
+
+        Ok(parts)
     }
 }

@@ -1,9 +1,6 @@
 #[cfg(test)]
 pub mod integration {
-    use carbide_lexer::{
-        errors::CarbideLexerError, keywords::Keywords, lexer::CarbideLexer, tokens::SourceLocation,
-        tokens::Tokens,
-    };
+    use carbide_lexer::{keywords::Keywords, lexer::CarbideLexer, tokens::Tokens};
 
     #[test]
     fn simple_function_declaration() {
