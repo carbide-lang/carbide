@@ -595,7 +595,7 @@ impl<'a> CarbideLexer<'a> {
             let full_slice = &self.src[usize_from(start)?..usize_from(end)?];
 
             if has_interpolation {
-                let parts = self.lex_interpolated_string(raw_string, start_loc)?;
+                let parts = CarbideLexer::<'a>::lex_interpolated_string(raw_string, start_loc)?;
                 return Ok(Some(Token {
                     token_type: Tokens::InterpolatedString(parts),
                     start: start_loc,
@@ -603,16 +603,16 @@ impl<'a> CarbideLexer<'a> {
                     span: start..end,
                     src: full_slice,
                 }));
-            } else {
-                let content = self.unescape_string(raw_string)?;
-                return Ok(Some(Token {
-                    token_type: Tokens::StringLiteral(content),
-                    start: start_loc,
-                    end: end_loc,
-                    span: start..end,
-                    src: full_slice,
-                }));
             }
+
+            let content = CarbideLexer::<'a>::unescape_string(raw_string);
+            return Ok(Some(Token {
+                token_type: Tokens::StringLiteral(content),
+                start: start_loc,
+                end: end_loc,
+                span: start..end,
+                src: full_slice,
+            }));
         }
         Ok(None)
     }
@@ -621,7 +621,7 @@ impl<'a> CarbideLexer<'a> {
     ///
     /// # Errors
     /// Returns `Err` if lexing the source fails
-    fn unescape_string(&self, raw: &str) -> Result<String, CarbideLexerError> {
+    fn unescape_string(raw: &str) -> String {
         let mut result = String::new();
         let mut chars = raw.chars().peekable();
 
@@ -650,7 +650,7 @@ impl<'a> CarbideLexer<'a> {
             }
         }
 
-        Ok(result)
+        result
     }
 
     /// Attempt to lex an interpolated string
@@ -658,7 +658,6 @@ impl<'a> CarbideLexer<'a> {
     /// # Errors
     /// Returns `Err` if lexing the source fails
     fn lex_interpolated_string(
-        &self,
         raw: &str,
         loc: SourceLocation,
     ) -> Result<Vec<StringPart>, CarbideLexerError> {
@@ -689,7 +688,7 @@ impl<'a> CarbideLexer<'a> {
 
             if text_end > current {
                 let text = &raw[current..text_end];
-                let unescaped = self.unescape_string(text)?;
+                let unescaped = CarbideLexer::<'a>::unescape_string(text);
                 if !unescaped.is_empty() {
                     parts.push(StringPart::Text(unescaped));
                 }

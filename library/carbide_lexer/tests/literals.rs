@@ -244,7 +244,10 @@ pub mod string_literals {
         let tokens = result.tokens;
 
         assert_eq!(tokens.len(), 1);
-        assert_eq!(tokens[0].token_type, Tokens::StringLiteral("Hello World!".to_string()));
+        assert_eq!(
+            tokens[0].token_type,
+            Tokens::StringLiteral("Hello World!".to_string())
+        );
     }
 
     #[test]
