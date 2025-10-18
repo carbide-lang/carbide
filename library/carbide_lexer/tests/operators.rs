@@ -1,8 +1,8 @@
 #[cfg(test)]
 pub mod binary {
-    use carbide_parser::{
+    use carbide_lexer::{
         operators::{BinaryOperators, UnaryOperators},
-        parser::CarbideParser,
+        lexer::CarbideLexer,
         tokens::{Token, Tokens},
     };
 
@@ -14,8 +14,8 @@ pub mod binary {
             .collect::<Vec<&str>>()
             .join(" ");
 
-        let mut parser = CarbideParser::from_src(&src);
-        let tokens = parser.parse().expect("Parsing should succeed");
+        let mut parser = CarbideLexer::from_src(&src);
+        let tokens = parser.lex().expect("Parsing should succeed");
 
         let mut expected = Vec::new();
         let mut start = 0usize;
@@ -42,8 +42,8 @@ pub mod binary {
             .collect::<Vec<&str>>()
             .join(" ");
 
-        let mut parser = CarbideParser::from_src(&src);
-        let tokens = parser.parse().expect("Parsing should succeed");
+        let mut parser = CarbideLexer::from_src(&src);
+        let tokens = parser.lex().expect("Parsing should succeed");
 
         let mut expected = Vec::new();
         let mut start = 0usize;
@@ -65,8 +65,8 @@ pub mod binary {
     #[test]
     fn operator_without_whitespace() {
         let src = "a==b";
-        let mut parser = CarbideParser::from_src(src);
-        let tokens = parser.parse().expect("Parsing should succeed");
+        let mut parser = CarbideLexer::from_src(src);
+        let tokens = parser.lex().expect("Parsing should succeed");
         assert_eq!(tokens.len(), 3);
         assert_eq!(tokens[0].token_type, Tokens::Identifier("a"));
         assert_eq!(
@@ -79,8 +79,8 @@ pub mod binary {
     #[test]
     fn ambiguous_operators() {
         let src = "! != !";
-        let mut parser = CarbideParser::from_src(src);
-        let tokens = parser.parse().expect("Parsing should succeed");
+        let mut parser = CarbideLexer::from_src(src);
+        let tokens = parser.lex().expect("Parsing should succeed");
         assert_eq!(tokens.len(), 3);
         assert_eq!(
             tokens[0].token_type,
@@ -99,8 +99,8 @@ pub mod binary {
     #[test]
     fn operators_adjacent_to_parens() {
         let src = "!(x)";
-        let mut parser = CarbideParser::from_src(src);
-        let tokens = parser.parse().expect("Parsing should succeed");
+        let mut parser = CarbideLexer::from_src(src);
+        let tokens = parser.lex().expect("Parsing should succeed");
         assert_eq!(tokens.len(), 4);
     }
 }

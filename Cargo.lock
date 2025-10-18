@@ -3,16 +3,15 @@
 version = 4
 
 [[package]]
-name = "carbide_ast"
-version = "0.1.0"
-dependencies = [
- "carbide_parser",
- "thiserror",
-]
-
-[[package]]
 name = "carbide_core"
 version = "0.1.0"
+
+[[package]]
+name = "carbide_lexer"
+version = "0.1.0"
+dependencies = [
+ "thiserror",
+]
 
 [[package]]
 name = "carbide_parser"

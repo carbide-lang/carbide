@@ -1,10 +1,9 @@
 [package]
-name = "carbide_ast"
+name = "carbide_lexer"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-carbide_parser = { workspace = true }
 thiserror = "2.0.17"
 
 [lints]

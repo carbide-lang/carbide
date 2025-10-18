@@ -1,9 +1,9 @@
-use crate::errors::CarbideParserError;
+use crate::errors::CarbideLexerError;
 use crate::keywords::Keywords;
 use crate::operators::{BinaryOperators, UnaryOperators};
 use crate::tokens::{Token, Tokens};
 
-pub struct CarbideParser<'a> {
+pub struct CarbideLexer<'a> {
     src: &'a str,
     pos: usize,
 }
@@ -13,12 +13,12 @@ pub struct CarbideParser<'a> {
 /// # Errors
 /// Returns `Err` if the u64 fails to cast to `usize`
 #[inline]
-fn usize_from(v: u64) -> Result<usize, CarbideParserError> {
+fn usize_from(v: u64) -> Result<usize, CarbideLexerError> {
     usize::try_from(v)
-        .map_err(|e| CarbideParserError::CastIntFailed(v.to_string(), "usize".to_string(), e))
+        .map_err(|e| CarbideLexerError::CastIntFailed(v.to_string(), "usize".to_string(), e))
 }
 
-impl<'a> CarbideParser<'a> {
+impl<'a> CarbideLexer<'a> {
     #[must_use]
     pub fn from_src(src: &'a str) -> Self {
         Self { src, pos: 0 }
@@ -51,19 +51,19 @@ impl<'a> CarbideParser<'a> {
         }
     }
 
-    /// Attempt to parse the source into a list of [`Tokens`][Token]
+    /// Attempt to lex the source into a list of [`Tokens`][Token]
     ///
     /// # Errors
     /// Returns `Err` if parsing the source fails
-    pub fn parse(&mut self) -> Result<Vec<Token<'a>>, CarbideParserError> {
+    pub fn lex(&mut self) -> Result<Vec<Token<'a>>, CarbideLexerError> {
         let mut tokens = Vec::new();
 
         while !self.is_eof() {
             let start = self.pos as u64;
-            let ch = self.peek().ok_or(CarbideParserError::UnexpectedEOF)?;
+            let ch = self.peek().ok_or(CarbideLexerError::UnexpectedEOF)?;
 
             if !ch.is_ascii() {
-                return Err(CarbideParserError::NonASCIIChar(ch));
+                return Err(CarbideLexerError::NonASCIIChar(ch));
             }
 
             if ch.is_ascii_whitespace() {
@@ -72,55 +72,54 @@ impl<'a> CarbideParser<'a> {
             }
 
             if ch.is_ascii_alphabetic() || ch == '_' {
-                let token = self.parse_identifier(start)?;
+                let token = self.lex_identifier(start)?;
                 tokens.push(token);
                 continue;
             }
 
             if ch.is_ascii_digit() {
-                let token = self.parse_number(start)?;
+                let token = self.lex_number(start)?;
                 tokens.push(token);
                 continue;
             }
 
             if BinaryOperators::starts_with(ch) || UnaryOperators::starts_with(ch) {
-                let token = self.parse_operator(start)?;
+                let token = self.lex_operator(start)?;
                 tokens.push(token);
                 continue;
             }
 
-            if let Some(token) = self.parse_single_char(start)? {
+            if let Some(token) = self.lex_single_char(start)? {
                 tokens.push(token);
                 continue;
             }
 
-            // Throw an error since parsing should catch everything
-            return Err(CarbideParserError::UnexpectedChar(ch));
+            // Throw an error since lexing should catch everything
+            return Err(CarbideLexerError::UnexpectedChar(ch));
         }
 
         Ok(tokens)
     }
 }
 
-impl<'a> CarbideParser<'a> {
-    /// Attempt to parse a number [`Token`]
+impl<'a> CarbideLexer<'a> {
+    /// Attempt to lex a number [`Token`]
     ///
     /// # Errors
     /// Returns `Err` if fails
-    fn parse_number(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
+    fn lex_number(&mut self, start: u64) -> Result<Token<'a>, CarbideLexerError> {
         if self.src[self.pos..].starts_with("0x") {
-            self.pos += 2; // consume `0x`
+            self.pos += 2;
             self.consume_while(|c| c.is_ascii_hexdigit());
 
             let end = self.pos as u64;
             let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
-            // Get a slice without `0x`
             let hex_digits = &self.src[(usize_from(start)? + 2)..usize_from(end)?];
 
             return Ok(Token {
                 token_type: Tokens::HexLiteral(i64::from_str_radix(hex_digits, 16).map_err(
-                    |e| CarbideParserError::InvalidHexLiteral(hex_digits.to_string(), e),
+                    |e| CarbideLexerError::InvalidHexLiteral(hex_digits.to_string(), e),
                 )?),
                 span: start..end,
                 src: slice,
@@ -128,18 +127,17 @@ impl<'a> CarbideParser<'a> {
         }
 
         if self.src[self.pos..].starts_with("0b") {
-            self.pos += 2; // consume `0b`
+            self.pos += 2;
             self.consume_while(|c| c == '0' || c == '1');
 
             let end = self.pos as u64;
             let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
-            // Get a slice without `0b`
             let hex_digits = &self.src[(usize_from(start)? + 2)..usize_from(end)?];
 
             return Ok(Token {
                 token_type: Tokens::BinaryLiteral(i64::from_str_radix(hex_digits, 2).map_err(
-                    |e| CarbideParserError::InvalidBinaryLiteral(hex_digits.to_string(), e),
+                    |e| CarbideLexerError::InvalidBinaryLiteral(hex_digits.to_string(), e),
                 )?),
                 span: start..end,
                 src: slice,
@@ -167,7 +165,7 @@ impl<'a> CarbideParser<'a> {
             Ok(Token {
                 token_type: Tokens::FloatLiteral(
                     slice.parse::<f64>().map_err(|e| {
-                        CarbideParserError::InvalidFloatLiteral(slice.to_string(), e)
+                        CarbideLexerError::InvalidFloatLiteral(slice.to_string(), e)
                     })?,
                 ),
                 span: start..end,
@@ -176,7 +174,7 @@ impl<'a> CarbideParser<'a> {
         } else {
             Ok(Token {
                 token_type: Tokens::IntLiteral(slice.parse::<i64>().map_err(|e| {
-                    CarbideParserError::InvalidIntegerLiteral(slice.to_string(), e)
+                    CarbideLexerError::InvalidIntegerLiteral(slice.to_string(), e)
                 })?),
                 span: start..end,
                 src: slice,
@@ -185,12 +183,12 @@ impl<'a> CarbideParser<'a> {
     }
 }
 
-impl<'a> CarbideParser<'a> {
-    /// Attempts to parse an identifier
+impl<'a> CarbideLexer<'a> {
+    /// Attempts to lex an identifier
     ///
     /// # Errors
     /// Returns `Err` if parsing the identifier fails
-    fn parse_identifier(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
+    fn lex_identifier(&mut self, start: u64) -> Result<Token<'a>, CarbideLexerError> {
         self.consume_while(|c| c.is_ascii_alphanumeric() || c == '_');
         let end = self.pos as u64;
 
@@ -210,13 +208,13 @@ impl<'a> CarbideParser<'a> {
     }
 }
 
-impl<'a> CarbideParser<'a> {
-    /// Attempts to parse an operator (`==`, `!=`, `!`, `=`, etc.)
+impl<'a> CarbideLexer<'a> {
+    /// Attempts to lex an operator (`==`, `!=`, `!`, `=`, etc.)
     ///
     /// # Errors
     /// Returns `Err` if the operator is unrecognized
-    pub fn parse_operator(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
-        let first_ch = self.next().ok_or(CarbideParserError::UnexpectedEOF)?;
+    pub fn lex_operator(&mut self, start: u64) -> Result<Token<'a>, CarbideLexerError> {
+        let first_ch = self.next().ok_or(CarbideLexerError::UnexpectedEOF)?;
 
         if let Some(second_ch) = self.peek() {
             let two_char = format!("{first_ch}{second_ch}");
@@ -265,16 +263,16 @@ impl<'a> CarbideParser<'a> {
             });
         }
 
-        Err(CarbideParserError::UnexpectedChar(first_ch))
+        Err(CarbideLexerError::UnexpectedChar(first_ch))
     }
 }
 
-impl<'a> CarbideParser<'a> {
-    /// Attempt to parse a single-character token (`()[]{},;:`)
+impl<'a> CarbideLexer<'a> {
+    /// Attempt to lex a single-character token (`()[]{},;:`)
     ///
     /// # Errors
     /// Returns `Err` if parsing the source fails
-    fn parse_single_char(&mut self, start: u64) -> Result<Option<Token<'a>>, CarbideParserError> {
+    fn lex_single_char(&mut self, start: u64) -> Result<Option<Token<'a>>, CarbideLexerError> {
         if let Some(ch) = self.peek()
             && Tokens::starts_with(ch)
         {

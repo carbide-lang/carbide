@@ -1,4 +1,4 @@
-use crate::errors::CarbideParserError;
+use crate::errors::CarbideLexerError;
 
 macro_rules! define_keywords {
     ($($kw:ident => $lit:literal),* $(,)?) => {
@@ -21,12 +21,12 @@ macro_rules! define_keywords {
         }
 
         impl<'a> TryFrom<&'a str> for Keywords {
-            type Error = CarbideParserError;
+            type Error = CarbideLexerError;
 
             fn try_from(ident: &'a str) -> Result<Self, Self::Error> {
                 match ident {
                     $($lit => Ok(Self::$kw),)*
-                    _ => Err(CarbideParserError::CastKeywordFailed(ident.to_string())),
+                    _ => Err(CarbideLexerError::CastKeywordFailed(ident.to_string())),
                 }
             }
         }

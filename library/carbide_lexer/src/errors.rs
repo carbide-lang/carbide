@@ -3,7 +3,7 @@ use std::num::{ParseFloatError, ParseIntError, TryFromIntError};
 use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq, Eq, Clone)]
-pub enum CarbideParserError {
+pub enum CarbideLexerError {
     #[error("`{0}` is not an ASCII char!")]
     NonASCIIChar(char),
 

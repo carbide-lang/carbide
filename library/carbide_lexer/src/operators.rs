@@ -1,4 +1,4 @@
-use crate::errors::CarbideParserError;
+use crate::errors::CarbideLexerError;
 
 macro_rules! define_bin_ops {
     ($($kw:ident => $lit:literal),* $(,)?) => {
@@ -28,12 +28,12 @@ macro_rules! define_bin_ops {
         }
 
         impl<'a> TryFrom<&'a str> for BinaryOperators {
-            type Error = CarbideParserError;
+            type Error = CarbideLexerError;
 
             fn try_from(ident: &'a str) -> Result<Self, Self::Error> {
                 match ident {
                     $($lit => Ok(Self::$kw),)*
-                    _ => Err(CarbideParserError::CastBinaryOpFailed(ident.to_string())),
+                    _ => Err(CarbideLexerError::CastBinaryOpFailed(ident.to_string())),
                 }
             }
         }
@@ -67,12 +67,12 @@ macro_rules! define_unary_ops {
         }
 
         impl<'a> TryFrom<&'a str> for UnaryOperators {
-            type Error = CarbideParserError;
+            type Error = CarbideLexerError;
 
             fn try_from(ident: &'a str) -> Result<Self, Self::Error> {
                 match ident {
                     $($lit => Ok(Self::$kw),)*
-                    _ => Err(CarbideParserError::CastUnaryOpFailed(ident.to_string())),
+                    _ => Err(CarbideLexerError::CastUnaryOpFailed(ident.to_string())),
                 }
             }
         }
