@@ -80,8 +80,10 @@ macro_rules! define_unary_ops {
 }
 
 define_bin_ops! {
-    Eq => "==",
+    EqEq => "==",
     NotEq  => "!=",
+
+    Eq => "="
 }
 
 define_unary_ops! {

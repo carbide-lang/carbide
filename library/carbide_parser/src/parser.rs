@@ -211,31 +211,45 @@ impl<'a> CarbideParser<'a> {
 }
 
 impl<'a> CarbideParser<'a> {
-    /// Attempts to parse an operator (`==`, `!=`, `!`, etc.)
+    /// Attempts to parse an operator (`==`, `!=`, `!`, `=`, etc.)
     ///
     /// # Errors
     /// Returns `Err` if the operator is unrecognized
     pub fn parse_operator(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
-        let mut op = String::new();
+        let first_ch = self.next().ok_or(CarbideParserError::UnexpectedEOF)?;
 
-        if let Some(ch) = self.next() {
-            op.push(ch);
+        if let Some(second_ch) = self.peek() {
+            let two_char = format!("{}{}", first_ch, second_ch);
 
-            if let Some(next_ch) = self.peek() {
-                let two_char = format!("{op}{next_ch}");
-                if BinaryOperators::try_from(two_char.as_str()).is_ok() {
-                    self.next();
-                    op = two_char;
-                }
+            if BinaryOperators::try_from(two_char.as_str()).is_ok() {
+                self.next();
+                let end = self.pos as u64;
+                let slice = &self.src[usize_from(start)?..usize_from(end)?];
+
+                return Ok(Token {
+                    token_type: Tokens::BinaryOperator(BinaryOperators::try_from(slice).unwrap()),
+                    span: start..end,
+                    src: slice,
+                });
             }
-        } else {
-            return Err(CarbideParserError::UnexpectedEOF);
+
+            if UnaryOperators::try_from(two_char.as_str()).is_ok() {
+                self.next();
+                let end = self.pos as u64;
+                let slice = &self.src[usize_from(start)?..usize_from(end)?];
+
+                return Ok(Token {
+                    token_type: Tokens::UnaryOperator(UnaryOperators::try_from(slice).unwrap()),
+                    span: start..end,
+                    src: slice,
+                });
+            }
         }
 
         let end = self.pos as u64;
         let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
-        if let Ok(bin_op) = BinaryOperators::try_from(op.as_str()) {
+        if let Ok(bin_op) = BinaryOperators::try_from(slice) {
             return Ok(Token {
                 token_type: Tokens::BinaryOperator(bin_op),
                 span: start..end,
@@ -243,7 +257,7 @@ impl<'a> CarbideParser<'a> {
             });
         }
 
-        if let Ok(un_op) = UnaryOperators::try_from(op.as_str()) {
+        if let Ok(un_op) = UnaryOperators::try_from(slice) {
             return Ok(Token {
                 token_type: Tokens::UnaryOperator(un_op),
                 span: start..end,
@@ -251,14 +265,15 @@ impl<'a> CarbideParser<'a> {
             });
         }
 
-        Err(CarbideParserError::UnexpectedChar(
-            op.chars().next().ok_or(CarbideParserError::UnexpectedEOF)?,
-        ))
+        Err(CarbideParserError::UnexpectedChar(first_ch))
     }
 }
 
 impl<'a> CarbideParser<'a> {
     /// Attempt to parse a single-character token (`()[]{},;:`)
+    ///
+    /// # Errors
+    /// Returns `Err` if parsing the source fails
     fn parse_single_char(&mut self, start: u64) -> Result<Option<Token<'a>>, CarbideParserError> {
         if let Some(ch) = self.peek() {
             if Tokens::starts_with(ch) {
