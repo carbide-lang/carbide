@@ -3,7 +3,7 @@ pub mod binary {
     use carbide_lexer::{
         lexer::CarbideLexer,
         operators::{BinaryOperators, UnaryOperators},
-        tokens::{Token, Tokens},
+        tokens::{SourceLocation, Token, Tokens},
     };
 
     #[test]
@@ -15,16 +15,30 @@ pub mod binary {
             .join(" ");
 
         let mut lexer = CarbideLexer::from_src(&src);
-        let tokens = lexer.lex().expect("Lexing should succeed");
+        let result = lexer.lex();
+
+        assert!(result.is_ok());
+        let tokens = result.tokens;
 
         let mut expected = Vec::new();
         let mut start = 0usize;
 
         for kw in BinaryOperators::ALL {
             let lit = kw.as_str();
-            let end = start + lit.len();
+            let len = lit.len();
+            let end = start + len;
             expected.push(Token::new(
                 Tokens::BinaryOperator(*kw),
+                SourceLocation {
+                    column: start as u64 + 1,
+                    line: 1,
+                    offset: start as u64,
+                },
+                SourceLocation {
+                    column: end as u64 + 1,
+                    line: 1,
+                    offset: end as u64,
+                },
                 start as u64..end as u64,
                 lit,
             ));
@@ -43,16 +57,30 @@ pub mod binary {
             .join(" ");
 
         let mut lexer = CarbideLexer::from_src(&src);
-        let tokens = lexer.lex().expect("Lexing should succeed");
+        let result = lexer.lex();
+
+        assert!(result.is_ok());
+        let tokens = result.tokens;
 
         let mut expected = Vec::new();
         let mut start = 0usize;
 
         for kw in UnaryOperators::ALL {
             let lit = kw.as_str();
-            let end = start + lit.len();
+            let len = lit.len();
+            let end = start + len;
             expected.push(Token::new(
                 Tokens::UnaryOperator(*kw),
+                SourceLocation {
+                    column: start as u64 + 1,
+                    line: 1,
+                    offset: start as u64,
+                },
+                SourceLocation {
+                    column: end as u64 + 1,
+                    line: 1,
+                    offset: end as u64,
+                },
                 start as u64..end as u64,
                 lit,
             ));
@@ -61,12 +89,15 @@ pub mod binary {
 
         assert_eq!(tokens, expected);
     }
-
     #[test]
     fn operator_without_whitespace() {
         let src = "a==b";
         let mut lexer = CarbideLexer::from_src(src);
-        let tokens = lexer.lex().expect("Lexing should succeed");
+        let result = lexer.lex();
+
+        assert!(result.is_ok());
+        let tokens = result.tokens;
+
         assert_eq!(tokens.len(), 3);
         assert_eq!(tokens[0].token_type, Tokens::Identifier("a"));
         assert_eq!(
@@ -80,7 +111,11 @@ pub mod binary {
     fn ambiguous_operators() {
         let src = "! != !";
         let mut lexer = CarbideLexer::from_src(src);
-        let tokens = lexer.lex().expect("Lexing should succeed");
+        let result = lexer.lex();
+
+        assert!(result.is_ok());
+        let tokens = result.tokens;
+
         assert_eq!(tokens.len(), 3);
         assert_eq!(
             tokens[0].token_type,
@@ -100,7 +135,11 @@ pub mod binary {
     fn operators_adjacent_to_parens() {
         let src = "!(x)";
         let mut lexer = CarbideLexer::from_src(src);
-        let tokens = lexer.lex().expect("Lexing should succeed");
+        let result = lexer.lex();
+
+        assert!(result.is_ok());
+        let tokens = result.tokens;
+
         assert_eq!(tokens.len(), 4);
     }
 }

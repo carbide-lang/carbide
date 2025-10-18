@@ -4,6 +4,20 @@ use std::ops::Range;
 use crate::keywords::Keywords;
 use crate::operators::{BinaryOperators, UnaryOperators};
 
+/// Represents a location in source code
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SourceLocation {
+    pub line: u64,
+    pub column: u64,
+    pub offset: u64,
+}
+
+impl fmt::Display for SourceLocation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tokens<'a> {
     /// Integer literal, like `100`
@@ -75,27 +89,55 @@ pub type Span = Range<u64>;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token<'a> {
     pub token_type: Tokens<'a>,
+    pub start: SourceLocation,
+    pub end: SourceLocation,
     pub span: Span,
     pub src: &'a str,
 }
 
 impl<'a> Token<'a> {
     #[must_use]
-    pub fn new(token_type: Tokens<'a>, span: Span, src: &'a str) -> Self {
+    pub fn new(
+        token_type: Tokens<'a>,
+        start: SourceLocation,
+        end: SourceLocation,
+        span: Span,
+        src: &'a str,
+    ) -> Self {
         Self {
             token_type,
+            start,
+            end,
             span,
             src,
         }
     }
+
+    /// Get the line number where this token starts
+    #[must_use]
+    pub fn line(&self) -> u64 {
+        self.start.line
+    }
+
+    /// Get the column number where this token starts
+    #[must_use]
+    pub fn column(&self) -> u64 {
+        self.start.column
+    }
+
+    /// Get a formatted location string (line:column)
+    #[must_use]
+    pub fn location_str(&self) -> String {
+        format!("{}:{}", self.start.line, self.start.column)
+    }
 }
 
 impl fmt::Display for Token<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "<Tokens::{:?}@({}..{}) `{}`>",
-            self.token_type, self.span.start, self.span.end, self.src
+            "<Tokens::{:?}@{}..{} `{}`>",
+            self.token_type, self.start, self.end, self.src
         )
     }
 }
