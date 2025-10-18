@@ -219,7 +219,7 @@ impl<'a> CarbideParser<'a> {
         let first_ch = self.next().ok_or(CarbideParserError::UnexpectedEOF)?;
 
         if let Some(second_ch) = self.peek() {
-            let two_char = format!("{}{}", first_ch, second_ch);
+            let two_char = format!("{first_ch}{second_ch}");
 
             if BinaryOperators::try_from(two_char.as_str()).is_ok() {
                 self.next();
@@ -227,7 +227,7 @@ impl<'a> CarbideParser<'a> {
                 let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
                 return Ok(Token {
-                    token_type: Tokens::BinaryOperator(BinaryOperators::try_from(slice).unwrap()),
+                    token_type: Tokens::BinaryOperator(BinaryOperators::try_from(slice)?),
                     span: start..end,
                     src: slice,
                 });
@@ -239,7 +239,7 @@ impl<'a> CarbideParser<'a> {
                 let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
                 return Ok(Token {
-                    token_type: Tokens::UnaryOperator(UnaryOperators::try_from(slice).unwrap()),
+                    token_type: Tokens::UnaryOperator(UnaryOperators::try_from(slice)?),
                     span: start..end,
                     src: slice,
                 });
@@ -275,19 +275,19 @@ impl<'a> CarbideParser<'a> {
     /// # Errors
     /// Returns `Err` if parsing the source fails
     fn parse_single_char(&mut self, start: u64) -> Result<Option<Token<'a>>, CarbideParserError> {
-        if let Some(ch) = self.peek() {
-            if Tokens::starts_with(ch) {
-                self.next();
-                let end = self.pos as u64;
-                let slice = &self.src[usize_from(start)?..usize_from(end)?];
+        if let Some(ch) = self.peek()
+            && Tokens::starts_with(ch)
+        {
+            self.next();
+            let end = self.pos as u64;
+            let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
-                if let Some(token_type) = Tokens::from_char(ch) {
-                    return Ok(Some(Token {
-                        token_type,
-                        span: start..end,
-                        src: slice,
-                    }));
-                }
+            if let Some(token_type) = Tokens::from_char(ch) {
+                return Ok(Some(Token {
+                    token_type,
+                    span: start..end,
+                    src: slice,
+                }));
             }
         }
         Ok(None)
