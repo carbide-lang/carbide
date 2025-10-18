@@ -239,9 +239,7 @@ impl<'a> CarbideParser<'a> {
         }
 
         Err(CarbideParserError::UnexpectedChar(
-            op.chars()
-                .next()
-                .ok_or(CarbideParserError::UnexpectedEOF)?,
+            op.chars().next().ok_or(CarbideParserError::UnexpectedEOF)?,
         ))
     }
 }

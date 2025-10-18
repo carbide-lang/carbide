@@ -28,5 +28,5 @@ pub enum CarbideParserError {
     #[error("Failed to cast `{0}` as a binary operator")]
     CastBinaryOpFailed(String),
     #[error("Failed to cast `{0}` as a unary operator")]
-    CastUnaryOpFailed(String)
+    CastUnaryOpFailed(String),
 }
