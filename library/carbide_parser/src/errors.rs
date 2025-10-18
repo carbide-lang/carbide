@@ -25,4 +25,8 @@ pub enum CarbideParserError {
     CastIntFailed(String, String, TryFromIntError),
     #[error("Failed to cast `{0}` as a keyword")]
     CastKeywordFailed(String),
+    #[error("Failed to cast `{0}` as a binary operator")]
+    CastBinaryOpFailed(String),
+    #[error("Failed to cast `{0}` as a unary operator")]
+    CastUnaryOpFailed(String)
 }

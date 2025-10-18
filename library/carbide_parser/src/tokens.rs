@@ -2,6 +2,7 @@ use std::fmt;
 use std::ops::Range;
 
 use crate::keywords::Keywords;
+use crate::operators::{BinaryOperators, UnaryOperators};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tokens<'a> {
@@ -17,6 +18,10 @@ pub enum Tokens<'a> {
     Identifier(&'a str),
     /// A keyword, like `let` or `fn`
     Keyword(Keywords),
+    /// A binary operator, like `!=`
+    BinaryOperator(BinaryOperators),
+    /// A unary operator, like `!`
+    UnaryOperator(UnaryOperators),
 }
 
 pub type Span = Range<u64>;

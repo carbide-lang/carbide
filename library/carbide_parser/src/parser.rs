@@ -1,5 +1,6 @@
 use crate::errors::CarbideParserError;
 use crate::keywords::Keywords;
+use crate::operators::{BinaryOperators, UnaryOperators};
 use crate::tokens::{Token, Tokens};
 
 pub struct CarbideParser<'a> {
@@ -193,5 +194,54 @@ impl<'a> CarbideParser<'a> {
             span: start..end,
             src: slice,
         })
+    }
+}
+
+impl<'a> CarbideParser<'a> {
+    /// Attempts to parse an operator (`==`, `!=`, `!`, etc.)
+    ///
+    /// # Errors
+    /// Returns `Err` if the operator is unrecognized
+    pub fn parse_operator(&mut self, start: u64) -> Result<Token<'a>, CarbideParserError> {
+        let mut op = String::new();
+
+        if let Some(ch) = self.next() {
+            op.push(ch);
+
+            if let Some(next_ch) = self.peek() {
+                let two_char = format!("{op}{next_ch}");
+                if BinaryOperators::try_from(two_char.as_str()).is_ok() {
+                    self.next();
+                    op = two_char;
+                }
+            }
+        } else {
+            return Err(CarbideParserError::UnexpectedEOF);
+        }
+
+        let end = self.pos as u64;
+        let slice = &self.src[usize_from!(start)..usize_from!(end)];
+
+        if let Ok(bin_op) = BinaryOperators::try_from(op.as_str()) {
+            return Ok(Token {
+                token_type: Tokens::BinaryOperator(bin_op),
+                span: start..end,
+                src: slice,
+            });
+        }
+
+        if let Ok(un_op) = UnaryOperators::try_from(op.as_str()) {
+            return Ok(Token {
+                token_type: Tokens::UnaryOperator(un_op),
+                span: start..end,
+                src: slice,
+            });
+        }
+
+        Err(CarbideParserError::UnexpectedChar(
+            op.chars()
+                .next()
+                .ok_or(CarbideParserError::UnexpectedEOF)?,
+        ))
     }
 }

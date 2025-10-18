@@ -1,8 +1,13 @@
 [workspace]
 resolver = "3"
-members = ["compiler/carbidec", "library/carbide_core", "library/carbide_parser"]
+members = ["compiler/carbidec", "library/carbide_ast", "library/carbide_core", "library/carbide_parser"]
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 unwrap_used = "deny" 
+
+[workspace.dependencies]
+carbide_core = { path = "library/carbide_core"}
+carbide_ast = { path = "library/carbide_ast"}
+carbide_parser = { path = "library/carbide_parser"}
