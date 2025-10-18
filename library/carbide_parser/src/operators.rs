@@ -12,11 +12,18 @@ macro_rules! define_bin_ops {
                 $(Self::$kw),*
             ];
 
+            /// Return the `&str` representation of the Keyword
             #[must_use]
             pub fn as_str(&self) -> &'static str {
                 match self {
                     $(Self::$kw => $lit),*
                 }
+            }
+
+            /// Check if any [`BinaryOperator`][BinaryOperators] starts with the given char
+            #[must_use]
+            pub fn starts_with(ch: char) -> bool {
+                Self::ALL.iter().any(|op| op.as_str().starts_with(ch))
             }
         }
 
@@ -50,6 +57,12 @@ macro_rules! define_unary_ops {
                 match self {
                     $(Self::$kw => $lit),*
                 }
+            }
+
+            /// Check if any [`UnaryOperator`][UnaryOperators] starts with the given char
+            #[must_use]
+            pub fn starts_with(ch: char) -> bool {
+                Self::ALL.iter().any(|op| op.as_str().starts_with(ch))
             }
         }
 

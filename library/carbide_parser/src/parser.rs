@@ -8,12 +8,14 @@ pub struct CarbideParser<'a> {
     pos: usize,
 }
 
-macro_rules! usize_from {
-    ($value:expr) => {
-        usize::try_from($value).map_err(|e| {
-            CarbideParserError::CastIntFailed($value.to_string(), "usize".to_string(), e)
-        })?
-    };
+/// Attempt to cast a `u64` as a `usize`
+/// 
+/// # Errors
+/// Returns `Err` if the u64 fails to cast to `usize`
+#[inline(always)]
+fn usize_from(v: u64) -> Result<usize, CarbideParserError> {
+    usize::try_from(v)
+        .map_err(|e| CarbideParserError::CastIntFailed(v.to_string(), "usize".to_string(), e))
 }
 
 impl<'a> CarbideParser<'a> {
@@ -81,6 +83,12 @@ impl<'a> CarbideParser<'a> {
                 continue;
             }
 
+            if BinaryOperators::starts_with(ch) || UnaryOperators::starts_with(ch) {
+                let token = self.parse_operator(start)?;
+                tokens.push(token);
+                continue;
+            }
+
             // Throw an error since parsing should catch everything
             return Err(CarbideParserError::UnexpectedChar(ch));
         }
@@ -100,10 +108,10 @@ impl<'a> CarbideParser<'a> {
             self.consume_while(|c| c.is_ascii_hexdigit());
 
             let end = self.pos as u64;
-            let slice = &self.src[usize_from!(start)..usize_from!(end)];
+            let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
             // Get a slice without `0x`
-            let hex_digits = &self.src[(usize_from!(start) + 2)..usize_from!(end)];
+            let hex_digits = &self.src[(usize_from(start)? + 2)..usize_from(end)?];
 
             return Ok(Token {
                 token_type: Tokens::HexLiteral(i64::from_str_radix(hex_digits, 16).map_err(
@@ -119,10 +127,10 @@ impl<'a> CarbideParser<'a> {
             self.consume_while(|c| c == '0' || c == '1');
 
             let end = self.pos as u64;
-            let slice = &self.src[usize_from!(start)..usize_from!(end)];
+            let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
             // Get a slice without `0b`
-            let hex_digits = &self.src[(usize_from!(start) + 2)..usize_from!(end)];
+            let hex_digits = &self.src[(usize_from(start)? + 2)..usize_from(end)?];
 
             return Ok(Token {
                 token_type: Tokens::BinaryLiteral(i64::from_str_radix(hex_digits, 2).map_err(
@@ -148,7 +156,7 @@ impl<'a> CarbideParser<'a> {
         });
 
         let end = self.pos as u64;
-        let slice = &self.src[usize_from!(start)..usize_from!(end)];
+        let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
         if has_dot {
             Ok(Token {
@@ -181,7 +189,7 @@ impl<'a> CarbideParser<'a> {
         self.consume_while(|c| c.is_ascii_alphanumeric() || c == '_');
         let end = self.pos as u64;
 
-        let slice = &self.src[usize_from!(start)..usize_from!(end)];
+        let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
         let token_type = if let Ok(keyword) = Keywords::try_from(slice) {
             Tokens::Keyword(keyword)
@@ -220,7 +228,7 @@ impl<'a> CarbideParser<'a> {
         }
 
         let end = self.pos as u64;
-        let slice = &self.src[usize_from!(start)..usize_from!(end)];
+        let slice = &self.src[usize_from(start)?..usize_from(end)?];
 
         if let Ok(bin_op) = BinaryOperators::try_from(op.as_str()) {
             return Ok(Token {
