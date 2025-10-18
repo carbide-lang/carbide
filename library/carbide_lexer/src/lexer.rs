@@ -62,12 +62,11 @@ impl<'a> CarbideLexer<'a> {
     /// Skip over whitespace and comments
     fn skip_whitespace_and_comments(&mut self) -> Result<(), CarbideLexerError> {
         loop {
-            if let Some(ch) = self.peek() {
-                if ch.is_ascii_whitespace() {
+            if let Some(ch) = self.peek()
+                && ch.is_ascii_whitespace() {
                     self.next();
                     continue;
                 }
-            }
 
             if self.src[self.pos..].starts_with("//") {
                 self.pos += 2;
@@ -83,7 +82,7 @@ impl<'a> CarbideLexer<'a> {
             break;
         }
 
-        return Ok(());
+        Ok(())
     }
 
     fn skip_nested_comment(&mut self) -> Result<(), CarbideLexerError> {
@@ -106,7 +105,7 @@ impl<'a> CarbideLexer<'a> {
             return Err(CarbideLexerError::UnclosedComment);
         }
 
-        return Ok(());
+        Ok(())
     }
 
     /// Attempt to lex the source into a list of [`Tokens`][Token]
