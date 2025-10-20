@@ -24,6 +24,16 @@ macro_rules! error_codes {
             E0006: 0006, // Lexer::InvalidNumber
 
             E1000: 1000, // Parser::Generic
+            E1001: 1001, // Parser::UnexpectedEOF
+            E1002: 1002, // Parser::UnexpectedToken
+            E1010: 1010, // Parser::ExpectedIdentifier
+            E1011: 1011, // Parser::ExpectedExpression
+            E1020: 1020, // Parser::TooManyParameters
+            E1021: 1021, // Parser::TooManyArguments
+            E1030: 1030, // Parser::InvalidAssignmentTarget
+            E1040: 1040, // Parser::BreakOutsideLoop
+            E1041: 1041, // Parser::ContinueOutsideLoop
+            E1042: 1042, // Parser::ReturnOutsideFunction
         );
     )
 }

@@ -7,3 +7,4 @@ edition = "2024"
 ariadne = "0.5.1"
 carbide_lexer = { workspace = true }
 carbide_errors = {workspace = true }
+carbide_parser = { workspace = true }

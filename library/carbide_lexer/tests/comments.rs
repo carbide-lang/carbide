@@ -70,11 +70,13 @@ pub mod comments {
         assert!(result.has_errors());
         assert_eq!(
             result.errors,
-            vec![CarbideLexerError::UnclosedComment(SourceLocation {
-                column: 5,
-                line: 1,
-                offset: 4
-            })]
+            vec![Box::new(CarbideLexerError::UnclosedComment(
+                SourceLocation {
+                    column: 5,
+                    line: 1,
+                    offset: 4
+                }
+            ))]
         );
     }
 
@@ -108,11 +110,13 @@ pub mod comments {
         assert!(!result.is_ok());
         assert_eq!(
             result.errors,
-            vec![CarbideLexerError::UnclosedComment(SourceLocation {
-                line: 1,
-                column: 7,
-                offset: 6
-            })]
+            vec![Box::new(CarbideLexerError::UnclosedComment(
+                SourceLocation {
+                    line: 1,
+                    column: 7,
+                    offset: 6
+                }
+            ))]
         )
     }
 }

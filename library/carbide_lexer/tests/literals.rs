@@ -314,11 +314,11 @@ pub mod string_literals {
 
         assert_eq!(
             result.errors[0],
-            CarbideLexerError::UnclosedString(SourceLocation {
+            Box::new(CarbideLexerError::UnclosedString(SourceLocation {
                 line: 1,
                 column: 2,
                 offset: 1
-            })
+            }))
         );
     }
 
@@ -332,11 +332,11 @@ pub mod string_literals {
 
         assert_eq!(
             result.errors[0],
-            CarbideLexerError::UnclosedString(SourceLocation {
+            Box::new(CarbideLexerError::UnclosedString(SourceLocation {
                 line: 1,
                 column: 2,
                 offset: 1
-            })
+            }))
         );
     }
 }

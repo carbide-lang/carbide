@@ -1,3 +1,4 @@
+
 use carbide_lexer::keywords::Keywords;
 use carbide_lexer::operators::BinaryOperators;
 use carbide_lexer::tokens::{SourceLocation, Token, Tokens};
@@ -48,6 +49,11 @@ impl<'a> CarbideParser<'a> {
         self.tokens.get(self.pos)
     }
 
+    #[inline]
+    fn last(&self) -> Option<&Token<'a>> {
+        self.tokens.get(self.pos - 1)
+    }
+
     /// Peek ahead by `n` tokens
     #[inline]
     #[allow(dead_code)]
@@ -69,14 +75,8 @@ impl<'a> CarbideParser<'a> {
 
     /// Get current source location for error reporting
     fn current_location(&self) -> SourceLocation {
-        self.peek().map_or(
-            SourceLocation {
-                line: 0,
-                column: 0,
-                offset: 0,
-            },
-            |t| t.start,
-        )
+        self.peek()
+            .map_or(unsafe { self.last().unwrap_unchecked().end }, |i| i.end)
     }
 
     /// Check if current token matches a specific token type pattern

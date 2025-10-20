@@ -49,6 +49,7 @@ dependencies = [
  "ariadne",
  "carbide_errors",
  "carbide_lexer",
+ "carbide_parser",
 ]
 
 [[package]]

@@ -13,7 +13,7 @@ pub struct CarbideLexer<'a> {
 /// Result type that includes both successful tokens and errors
 pub struct LexResult<'a> {
     pub tokens: Vec<Token<'a>>,
-    pub errors: Vec<CarbideLexerError>,
+    pub errors: Vec<Box<CarbideLexerError>>,
 }
 
 impl LexResult<'_> {
@@ -35,9 +35,14 @@ impl LexResult<'_> {
 /// # Errors
 /// Returns `Err` if the u64 fails to cast to `usize`
 #[inline]
-fn usize_from(v: u64) -> Result<usize, CarbideLexerError> {
-    usize::try_from(v)
-        .map_err(|e| CarbideLexerError::CastIntFailed(v.to_string(), "usize".to_string(), e))
+fn usize_from(v: u64) -> Result<usize, Box<CarbideLexerError>> {
+    usize::try_from(v).map_err(|e| {
+        Box::new(CarbideLexerError::CastIntFailed(
+            v.to_string(),
+            "usize".to_string(),
+            e,
+        ))
+    })
 }
 
 impl<'a> CarbideLexer<'a> {
@@ -105,7 +110,7 @@ impl<'a> CarbideLexer<'a> {
     }
 
     /// Skip over whitespace and comments
-    fn skip_whitespace_and_comments(&mut self) -> Result<(), CarbideLexerError> {
+    fn skip_whitespace_and_comments(&mut self) -> Result<(), Box<CarbideLexerError>> {
         loop {
             if let Some(ch) = self.peek()
                 && ch.is_ascii_whitespace()
@@ -133,7 +138,7 @@ impl<'a> CarbideLexer<'a> {
     }
 
     /// Skips nested comments
-    fn skip_nested_comment(&mut self) -> Result<(), CarbideLexerError> {
+    fn skip_nested_comment(&mut self) -> Result<(), Box<CarbideLexerError>> {
         let start_loc = self.current_location();
         self.pos += 2;
         self.column += 2;
@@ -154,7 +159,7 @@ impl<'a> CarbideLexer<'a> {
         }
 
         if depth > 0 {
-            return Err(CarbideLexerError::UnclosedComment(start_loc));
+            return Err(Box::new(CarbideLexerError::UnclosedComment(start_loc)));
         }
 
         Ok(())
@@ -207,7 +212,7 @@ impl<'a> CarbideLexer<'a> {
             };
 
             if !ch.is_ascii() {
-                errors.push(CarbideLexerError::NonASCIIChar(ch, start_loc));
+                errors.push(Box::new(CarbideLexerError::NonASCIIChar(ch, start_loc)));
                 self.recover_from_error();
                 continue;
             }
@@ -271,7 +276,7 @@ impl<'a> CarbideLexer<'a> {
                 }
             }
 
-            errors.push(CarbideLexerError::UnexpectedChar(ch, start_loc));
+            errors.push(Box::new(CarbideLexerError::UnexpectedChar(ch, start_loc)));
             self.recover_from_error();
         }
 
@@ -282,7 +287,7 @@ impl<'a> CarbideLexer<'a> {
     ///
     /// # Errors
     /// Returns `Err` if parsing the source fails
-    pub fn lex_strict(&mut self) -> Result<Vec<Token<'a>>, CarbideLexerError> {
+    pub fn lex_strict(&mut self) -> Result<Vec<Token<'a>>, Box<CarbideLexerError>> {
         let result = self.lex();
 
         if let Some(first_error) = result.errors.into_iter().next() {
@@ -302,7 +307,7 @@ impl<'a> CarbideLexer<'a> {
         &mut self,
         start: u64,
         start_loc: SourceLocation,
-    ) -> Result<Token<'a>, CarbideLexerError> {
+    ) -> Result<Token<'a>, Box<CarbideLexerError>> {
         if self.src[self.pos..].starts_with("0x") {
             self.pos += 2;
             self.column += 2;
@@ -317,15 +322,20 @@ impl<'a> CarbideLexer<'a> {
             let hex_digits = &self.src[hex_start..self.pos];
 
             if hex_digits.is_empty() {
-                return Err(CarbideLexerError::InvalidHexLiteral(
+                return Err(Box::new(CarbideLexerError::InvalidHexLiteral(
                     "0x".to_string(),
                     start_loc,
-                ));
+                )));
             }
 
             return Ok(Token {
                 token_type: Tokens::HexLiteral(i64::from_str_radix(hex_digits, 16).map_err(
-                    |_| CarbideLexerError::InvalidHexLiteral(hex_digits.to_string(), start_loc),
+                    |_| {
+                        Box::new(CarbideLexerError::InvalidHexLiteral(
+                            hex_digits.to_string(),
+                            start_loc,
+                        ))
+                    },
                 )?),
                 start: start_loc,
                 end: end_loc,
@@ -348,15 +358,20 @@ impl<'a> CarbideLexer<'a> {
             let bin_digits = &self.src[bin_start..self.pos];
 
             if bin_digits.is_empty() {
-                return Err(CarbideLexerError::InvalidBinaryLiteral(
+                return Err(Box::new(CarbideLexerError::InvalidBinaryLiteral(
                     "0b".to_string(),
                     start_loc,
-                ));
+                )));
             }
 
             return Ok(Token {
                 token_type: Tokens::BinaryLiteral(i64::from_str_radix(bin_digits, 2).map_err(
-                    |_| CarbideLexerError::InvalidBinaryLiteral(bin_digits.to_string(), start_loc),
+                    |_| {
+                        Box::new(CarbideLexerError::InvalidBinaryLiteral(
+                            bin_digits.to_string(),
+                            start_loc,
+                        ))
+                    },
                 )?),
                 start: start_loc,
                 end: end_loc,
@@ -386,7 +401,10 @@ impl<'a> CarbideLexer<'a> {
         if has_dot {
             Ok(Token {
                 token_type: Tokens::FloatLiteral(slice.parse::<f64>().map_err(|_| {
-                    CarbideLexerError::InvalidFloatLiteral(slice.to_string(), start_loc)
+                    Box::new(CarbideLexerError::InvalidFloatLiteral(
+                        slice.to_string(),
+                        start_loc,
+                    ))
                 })?),
                 start: start_loc,
                 end: end_loc,
@@ -396,7 +414,10 @@ impl<'a> CarbideLexer<'a> {
         } else {
             Ok(Token {
                 token_type: Tokens::IntLiteral(slice.parse::<i64>().map_err(|_| {
-                    CarbideLexerError::InvalidIntegerLiteral(slice.to_string(), start_loc)
+                    Box::new(CarbideLexerError::InvalidIntegerLiteral(
+                        slice.to_string(),
+                        start_loc,
+                    ))
                 })?),
                 start: start_loc,
                 end: end_loc,
@@ -416,7 +437,7 @@ impl<'a> CarbideLexer<'a> {
         &mut self,
         start: u64,
         start_loc: SourceLocation,
-    ) -> Result<Token<'a>, CarbideLexerError> {
+    ) -> Result<Token<'a>, Box<CarbideLexerError>> {
         self.consume_while(|c| c.is_ascii_alphanumeric() || c == '_');
         let end = self.pos as u64;
         let end_loc = self.current_location();
@@ -448,10 +469,10 @@ impl<'a> CarbideLexer<'a> {
         &mut self,
         start: u64,
         start_loc: SourceLocation,
-    ) -> Result<Token<'a>, CarbideLexerError> {
+    ) -> Result<Token<'a>, Box<CarbideLexerError>> {
         let first_ch = self
             .next()
-            .ok_or(CarbideLexerError::UnexpectedEOF(start_loc))?;
+            .ok_or(Box::new(CarbideLexerError::UnexpectedEOF(start_loc)))?;
 
         if let Some(second_ch) = self.peek() {
             let two_char_start = self.pos - first_ch.len_utf8();
@@ -512,7 +533,9 @@ impl<'a> CarbideLexer<'a> {
             });
         }
 
-        Err(CarbideLexerError::UnexpectedChar(first_ch, start_loc))
+        Err(Box::new(CarbideLexerError::UnexpectedChar(
+            first_ch, start_loc,
+        )))
     }
 }
 
@@ -525,7 +548,7 @@ impl<'a> CarbideLexer<'a> {
         &mut self,
         start: u64,
         start_loc: SourceLocation,
-    ) -> Result<Option<Token<'a>>, CarbideLexerError> {
+    ) -> Result<Option<Token<'a>>, Box<CarbideLexerError>> {
         if let Some(ch) = self.peek()
             && Tokens::starts_with(ch)
         {
@@ -557,7 +580,7 @@ impl<'a> CarbideLexer<'a> {
         &mut self,
         start: u64,
         start_loc: SourceLocation,
-    ) -> Result<Option<Token<'a>>, CarbideLexerError> {
+    ) -> Result<Option<Token<'a>>, Box<CarbideLexerError>> {
         if let Some(ch) = self.peek()
             && ch == '"'
         {
@@ -567,7 +590,7 @@ impl<'a> CarbideLexer<'a> {
 
             loop {
                 if self.is_eof() {
-                    return Err(CarbideLexerError::UnclosedString(start_loc));
+                    return Err(Box::new(CarbideLexerError::UnclosedString(start_loc)));
                 }
 
                 if let Some(ch) = self.peek() {
@@ -660,7 +683,7 @@ impl<'a> CarbideLexer<'a> {
     fn lex_interpolated_string(
         raw: &str,
         loc: SourceLocation,
-    ) -> Result<Vec<StringPart>, CarbideLexerError> {
+    ) -> Result<Vec<StringPart>, Box<CarbideLexerError>> {
         let mut parts = Vec::new();
         let mut current = 0;
         let bytes = raw.as_bytes();
@@ -715,7 +738,7 @@ impl<'a> CarbideLexer<'a> {
                 }
 
                 if brace_depth != 0 {
-                    return Err(CarbideLexerError::UnmatchedBrace(loc));
+                    return Err(Box::new(CarbideLexerError::UnmatchedBrace(loc)));
                 }
 
                 let interp = &raw[interp_start..text_end];

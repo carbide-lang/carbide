@@ -22,7 +22,7 @@ impl ErrorReporter {
     ///
     /// # Errors
     /// Returns `Err` if printing the errors fail, or if [`CarbideError::report()`] fails
-    pub fn print_error<E>(&self, filename: &str, error: &E) -> Result<(), String>
+    pub fn print_error<E>(&self, filename: &str, error: &Box<E>) -> Result<(), String>
     where
         E: CarbideError,
         E::Span: ariadne::Span<SourceId = String>,
@@ -44,7 +44,7 @@ impl ErrorReporter {
     ///
     /// # Errors
     /// Returns `Err` if printing the errors fail
-    pub fn print_errors<E>(&self, filename: &str, errors: &[E]) -> Result<(), String>
+    pub fn print_errors<E>(&self, filename: &str, errors: &[Box<E>]) -> Result<(), String>
     where
         E: CarbideError,
         E::Span: ariadne::Span<SourceId = String>,
@@ -60,7 +60,7 @@ impl ErrorReporter {
     ///
     /// # Errors
     /// Returns `Err` if getting the report fails
-    pub fn format_error<E>(&self, filename: &str, error: &E) -> Result<String, String>
+    pub fn format_error<E>(&self, filename: &str, error: &Box<E>) -> Result<String, String>
     where
         E: CarbideError,
         E::Span: ariadne::Span<SourceId = String>,
@@ -81,7 +81,7 @@ impl ErrorReporter {
         Ok(String::from_utf8_lossy(&buffer).to_string())
     }
 
-    pub fn format_errors<E>(&self, filename: &str, errors: &[E]) -> String
+    pub fn format_errors<E>(&self, filename: &str, errors: &[Box<E>]) -> String
     where
         E: CarbideError,
         E::Span: ariadne::Span<SourceId = String>,
