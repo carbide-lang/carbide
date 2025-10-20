@@ -36,6 +36,8 @@ dependencies = [
 name = "carbide_parser"
 version = "0.1.0"
 dependencies = [
+ "ariadne",
+ "carbide_errors",
  "carbide_lexer",
  "thiserror",
 ]

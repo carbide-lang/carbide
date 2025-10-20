@@ -22,6 +22,8 @@ macro_rules! error_codes {
             E0004: 0004, // Lexer::UnclosedString
             E0005: 0005, // Lexer::UnmatchedBrace
             E0006: 0006, // Lexer::InvalidNumber
+
+            E1000: 1000, // Parser::Generic
         );
     )
 }

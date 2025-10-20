@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 thiserror = "2.0.17"
 carbide_lexer = { workspace = true }
+carbide_errors = { workspace = true }
+ariadne = "0.5.1"
 
 [lints]
 workspace = true

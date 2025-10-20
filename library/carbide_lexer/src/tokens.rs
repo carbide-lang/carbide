@@ -58,6 +58,7 @@ pub enum Tokens<'a> {
     Semicolon,
     Colon,
     Period,
+    Comma,
 }
 
 macro_rules! define_single_char_tokens {
@@ -93,7 +94,8 @@ define_single_char_tokens! {
     RightBrace => '}',
     Semicolon => ';',
     Colon => ':',
-    Period => '.'
+    Period => '.',
+    Comma => ',',
 }
 
 pub type Span = Range<u64>;
