@@ -7,6 +7,7 @@ pub struct ErrorReporter {
 }
 
 impl ErrorReporter {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             sources: HashMap::new(),
@@ -17,12 +18,16 @@ impl ErrorReporter {
         self.sources.insert(filename.into(), content.into());
     }
 
-    pub fn print_error<E>(&self, filename: &str, error: &E)
+    /// Print a [`CarbideError`] given a `filename`
+    ///
+    /// # Errors
+    /// Returns `Err` if printing the errors fail, or if [`CarbideError::report()`] fails
+    pub fn print_error<E>(&self, filename: &str, error: &E) -> Result<(), String>
     where
         E: CarbideError,
         E::Span: ariadne::Span<SourceId = String>,
     {
-        let src = self.sources.get(filename).map(|s| s.as_str()).unwrap_or("");
+        let src = self.sources.get(filename).map_or("", |s| s.as_str());
 
         let report = error.report(filename, src);
 
@@ -30,26 +35,37 @@ impl ErrorReporter {
         cache.insert(filename.to_string(), src.to_string());
 
         report
+            .map_err(|_| "Failed to get report")?
             .eprint(&mut cache)
-            .unwrap_or_else(|e| eprintln!("Failed to print error report: {}", e));
+            .map_err(|e| format!("Failed to print error: {e}"))
     }
 
-    pub fn print_errors<E>(&self, filename: &str, errors: &[E])
+    /// Print all errors associated with this `ErrorReporter` given a `filename`
+    ///
+    /// # Errors
+    /// Returns `Err` if printing the errors fail
+    pub fn print_errors<E>(&self, filename: &str, errors: &[E]) -> Result<(), String>
     where
         E: CarbideError,
         E::Span: ariadne::Span<SourceId = String>,
     {
         for error in errors {
-            self.print_error(filename, error);
+            self.print_error(filename, error)?;
         }
+
+        Ok(())
     }
 
-    pub fn format_error<E>(&self, filename: &str, error: &E) -> String
+    /// Get a formatted [`CarbideError`]
+    ///
+    /// # Errors
+    /// Returns `Err` if getting the report fails
+    pub fn format_error<E>(&self, filename: &str, error: &E) -> Result<String, String>
     where
         E: CarbideError,
         E::Span: ariadne::Span<SourceId = String>,
     {
-        let src = self.sources.get(filename).map(|s| s.as_str()).unwrap_or("");
+        let src = self.sources.get(filename).map_or("", |s| s.as_str());
 
         let report = error.report(filename, src);
 
@@ -58,10 +74,11 @@ impl ErrorReporter {
 
         let mut buffer = Vec::new();
         report
+            .map_err(|_| "Failed to get report")?
             .write(&mut cache, &mut buffer)
-            .unwrap_or_else(|e| eprintln!("Failed to format error: {}", e));
+            .unwrap_or_else(|e| eprintln!("Failed to format error: {e}"));
 
-        String::from_utf8_lossy(&buffer).to_string()
+        Ok(String::from_utf8_lossy(&buffer).to_string())
     }
 
     pub fn format_errors<E>(&self, filename: &str, errors: &[E]) -> String
@@ -71,7 +88,7 @@ impl ErrorReporter {
     {
         errors
             .iter()
-            .map(|e| self.format_error(filename, e))
+            .filter_map(|e| self.format_error(filename, e).ok())
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -106,9 +123,9 @@ impl ariadne::Cache<String> for SimpleCache {
         &mut self,
         id: &String,
     ) -> Result<&Source<<Self as Cache<String>>::Storage>, impl std::fmt::Debug> {
-        self.sources.get(id).ok_or_else(|| {
-            Box::new(format!("Source '{}' not found", id)) as Box<dyn std::fmt::Debug>
-        })
+        self.sources
+            .get(id)
+            .ok_or_else(|| Box::new(format!("Source '{id}' not found")) as Box<dyn std::fmt::Debug>)
     }
 
     fn display<'a>(&self, id: &'a String) -> Option<impl std::fmt::Display + 'a> {

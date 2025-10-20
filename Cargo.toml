@@ -12,7 +12,6 @@ members = [
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 unwrap_used = "deny"
-missing_docs = "deny"
 
 [workspace.dependencies]
 carbide_core = { path = "library/carbide_core" }

@@ -107,59 +107,68 @@ impl CarbideError for CarbideLexerError {
     }
 
     fn message(&self) -> String {
-        format!("{}", self)
+        format!("{self}")
     }
 
-    fn report(&'_ self, file: &str, src: &str) -> Report<'_, ErrorSpan> {
+    #[allow(clippy::too_many_lines)]
+    fn report(&'_ self, file: &str, src: &str) -> Result<Report<'_, ErrorSpan>, Self> {
         match self {
             Self::NonASCIIChar(ch, loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let len = ch.len_utf8();
 
                 let error_span = ErrorSpan::new(file, offset, offset + len);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
                         Label::new(error_span)
-                            .with_message(format!("Remove '{}'", ch))
+                            .with_message(format!("Remove '{ch}'"))
                             .with_color(Color::BrightRed),
                     )
                     .with_help("Only ASCII characters are allowed in source code")
-                    .finish()
+                    .finish())
             }
 
             Self::UnexpectedChar(ch, loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let len = ch.len_utf8();
 
                 let error_span = ErrorSpan::new(file, offset, offset + len);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
                         Label::new(error_span)
-                            .with_message(format!("Remove '{}'", ch))
+                            .with_message(format!("Remove '{ch}'"))
                             .with_color(Color::BrightRed),
                     )
                     .with_help("This character is not valid in this context")
-                    .finish()
+                    .finish())
             }
 
             Self::UnclosedString(loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let error_span = ErrorSpan::new(file, offset, offset + 1);
 
                 let string_end = src[offset..]
                     .find('\n')
-                    .map(|pos| offset + pos)
-                    .unwrap_or(src.len());
+                    .map_or(src.len(), |pos| offset + pos);
 
                 let suggestion_span = ErrorSpan::new(file, string_end, string_end + 1);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -173,16 +182,19 @@ impl CarbideError for CarbideLexerError {
                             .with_color(Color::Green),
                     )
                     .with_help("Strings must be closed with a quote")
-                    .finish()
+                    .finish())
             }
 
             Self::InvalidHexLiteral(lit, loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let len = lit.len();
 
                 let error_span = ErrorSpan::new(file, offset, offset + len);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -191,16 +203,19 @@ impl CarbideError for CarbideLexerError {
                             .with_color(Color::BrightRed),
                     )
                     .with_help("Hex literals must have at least one digit (0-9, a-f, A-F)")
-                    .finish()
+                    .finish())
             }
 
             Self::InvalidBinaryLiteral(lit, loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let len = lit.len();
 
                 let error_span = ErrorSpan::new(file, offset, offset + len);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -210,14 +225,17 @@ impl CarbideError for CarbideLexerError {
                     )
                     .with_help("Binary literals must have at least one digit (0 or 1)")
                     .with_note("Examples: 0b1010, 0b11111111, 0b0")
-                    .finish()
+                    .finish())
             }
 
             Self::UnmatchedBrace(loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let error_span = ErrorSpan::new(file, offset, offset + 1);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -227,16 +245,19 @@ impl CarbideError for CarbideLexerError {
                     )
                     .with_help("Each '{' in string interpolation needs a matching '}'")
                     .with_note("String interpolation syntax: \"Hello {name}\"")
-                    .finish()
+                    .finish())
             }
 
             Self::UnclosedComment(loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let error_span = ErrorSpan::new(file, offset, offset + 2);
 
                 let suggestion_span = ErrorSpan::new(file, src.len(), src.len());
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -250,14 +271,17 @@ impl CarbideError for CarbideLexerError {
                             .with_color(Color::Green),
                     )
                     .with_help("Block comments must be closed with '*/'")
-                    .finish()
+                    .finish())
             }
 
             Self::UnexpectedEOF(loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let error_span = ErrorSpan::new(file, offset.saturating_sub(1), offset);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -266,15 +290,18 @@ impl CarbideError for CarbideLexerError {
                             .with_color(Color::BrightRed),
                     )
                     .with_help("Check for unclosed strings, comments, or brackets")
-                    .finish()
+                    .finish())
             }
 
             Self::InvalidFloatLiteral(lit, loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let len = lit.len();
                 let error_span = ErrorSpan::new(file, offset, offset + len);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -284,15 +311,18 @@ impl CarbideError for CarbideLexerError {
                     )
                     .with_help("Floats can only have one decimal point")
                     .with_note("Valid examples: 3.14, 0.5, 1.0")
-                    .finish()
+                    .finish())
             }
 
             Self::InvalidIntegerLiteral(lit, loc) => {
-                let offset = loc.offset as usize;
+                let offset = usize::try_from(loc.offset).map_err(|e| {
+                    CarbideLexerError::CastIntFailed(loc.offset.to_string(), "usize".to_string(), e)
+                })?;
+
                 let len = lit.len();
                 let error_span = ErrorSpan::new(file, offset, offset + len);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -302,13 +332,13 @@ impl CarbideError for CarbideLexerError {
                     )
                     .with_help("Integer is too large or has invalid characters")
                     .with_note("Valid examples: 42, 0, 123")
-                    .finish()
+                    .finish())
             }
 
             _ => {
                 let error_span = ErrorSpan::new(file, 0, 1);
 
-                Report::build(ReportKind::Error, error_span.clone())
+                Ok(Report::build(ReportKind::Error, error_span.clone())
                     .with_code(self.code().to_string())
                     .with_message(self.message())
                     .with_label(
@@ -316,7 +346,7 @@ impl CarbideError for CarbideLexerError {
                             .with_message("Error occurred here")
                             .with_color(Color::BrightRed),
                     )
-                    .finish()
+                    .finish())
             }
         }
     }

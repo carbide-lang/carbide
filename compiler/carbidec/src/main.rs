@@ -1,4 +1,4 @@
-use carbide_errors::{reporter::ErrorReporter};
+use carbide_errors::reporter::ErrorReporter;
 use carbide_lexer::lexer::CarbideLexer;
 
 fn main() {
@@ -14,5 +14,7 @@ fn main() {
 
     let mut reporter = ErrorReporter::new();
     reporter.add_source("example.cb", src);
-    reporter.print_errors("example.cb", &result.errors);
+    reporter
+        .print_errors("example.cb", &result.errors)
+        .expect("Expected error printing to succeed");
 }

@@ -5,7 +5,5 @@ edition = "2024"
 
 [dependencies]
 
-[lints.clippy]
-all = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
-unwrap_used = "deny" 
+[lints]
+workspace = true
