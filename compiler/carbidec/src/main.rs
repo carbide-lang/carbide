@@ -3,7 +3,7 @@ use carbide_lexer::{errors::CarbideLexerError, lexer::CarbideLexer};
 use carbide_parser::{errors::CarbideParserError, parser::CarbideParser};
 
 fn main() {
-    let src = r#"let x ="#;
+    let src = r#"let x = {};"#;
     let mut lexer = CarbideLexer::from_src(src);
     let result = lexer.lex();
 

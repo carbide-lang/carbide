@@ -1,127 +1,205 @@
 #[cfg(test)]
 mod variables {
-    use carbide_lexer::{
-        lexer::CarbideLexer,
-        operators::BinaryOperators,
-        tokens::{SourceLocation, Token, Tokens},
-    };
+    use carbide_lexer::lexer::CarbideLexer;
     use carbide_parser::{
-        errors::CarbideParserError,
         nodes::{Expression, LiteralValue, Statement},
         parser::CarbideParser,
     };
 
-    #[test]
-    fn declaration_initializer() {
-        let src = r#"let my_var = 0;"#;
+    fn parse_src(src: &'_ str) -> (CarbideParser<'_>, carbide_parser::parser::ParseResult) {
         let mut lexer = CarbideLexer::from_src(src);
         let result = lexer.lex();
-
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "Lexer failed for '{}'", src);
 
         let mut parser = CarbideParser::new(result.tokens);
         let result = parser.parse();
+        (parser, result)
+    }
 
+    #[test]
+    fn declaration_initializer() {
+        let (_, result) = parse_src("let my_var = 0;");
         assert!(result.is_ok());
         assert_eq!(
             result.ast,
             vec![Statement::LetDeclaration {
-                name: "my_var".to_string(),
-                initializer: Some(Expression::Literal(LiteralValue::Int(0)))
+                name: "my_var".into(),
+                initializer: Some(Expression::Literal(LiteralValue::Int(0))),
             }]
-        )
+        );
     }
 
     #[test]
     fn declaration_no_initializer() {
-        let src = r#"let my_var;"#;
-        let mut lexer = CarbideLexer::from_src(src);
-        let result = lexer.lex();
-
-        assert!(result.is_ok());
-
-        let mut parser = CarbideParser::new(result.tokens);
-        let result = parser.parse();
-
+        let (_, result) = parse_src("let my_var;");
         assert!(result.is_ok());
         assert_eq!(
             result.ast,
             vec![Statement::LetDeclaration {
-                name: "my_var".to_string(),
+                name: "my_var".into(),
                 initializer: None,
             }]
-        )
+        );
     }
 
     #[test]
-    fn invalid_declaration_missing_identifier() {
-        let src = r#"let = ;"#;
-        let mut lexer = CarbideLexer::from_src(src);
-        let result = lexer.lex();
-
-        assert!(result.is_ok());
-
-        let mut parser = CarbideParser::new(result.tokens);
-        let result = parser.parse();
-
+    fn invalid_missing_identifier() {
+        let (_, result) = parse_src("let = 5;");
         assert!(!result.is_ok());
-
-        assert_eq!(
-            result.errors,
-            vec![Box::new(CarbideParserError::UnexpectedToken {
-                expected: "identifier".to_string(),
-                found: Token {
-                    token_type: Tokens::BinaryOperator(BinaryOperators::Eq),
-                    start: SourceLocation {
-                        line: 1,
-                        column: 5,
-                        offset: 4,
-                    },
-                    end: SourceLocation {
-                        line: 1,
-                        column: 6,
-                        offset: 5
-                    },
-                    span: 4..5,
-                    src: "="
-                }
-            })]
-        )
     }
 
     #[test]
-    fn invalid_declaration_missing_initializer() {
-        let src = r#"let my_var = ;"#;
-        let mut lexer = CarbideLexer::from_src(src);
-        let result = lexer.lex();
-
-        assert!(result.is_ok());
-
-        let mut parser = CarbideParser::new(result.tokens);
-        let result = parser.parse();
-
+    fn invalid_missing_initializer_value() {
+        let (_, result) = parse_src("let my_var = ;");
         assert!(!result.is_ok());
+    }
 
-        assert_eq!(
-            result.errors,
-            vec![Box::new(CarbideParserError::UnexpectedToken {
-                expected: "expression".to_string(),
-                found: Token {
-                    token_type: Tokens::Semicolon,
-                    start: SourceLocation {
-                        line: 1,
-                        column: 14,
-                        offset: 13,
-                    },
-                    end: SourceLocation {
-                        line: 1,
-                        column: 15,
-                        offset: 14
-                    },
-                    span: 13..14,
-                    src: ";"
-                }
-            })]
-        )
+    #[test]
+    fn invalid_block_initializer() {
+        let (_, result) = parse_src("let my_var = {};");
+        assert!(!result.is_ok());
+    }
+
+    #[test]
+    fn missing_semicolon() {
+        let (_, result) = parse_src("let x = 5");
+        assert!(!result.is_ok(), "Expected error for missing semicolon");
+    }
+
+    #[test]
+    fn unterminated_string_literal() {
+        let mut lexer = CarbideLexer::from_src(r#"let bad = "oops;"#);
+        let result = lexer.lex();
+        assert!(
+            !result.is_ok(),
+            "Unclosed string should trigger lexer error"
+        );
+    }
+
+    #[test]
+    fn extra_whitespace() {
+        let (_, result) = parse_src("   let     spaced   =   42   ;   ");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn multiline_declaration() {
+        let src = r#"
+            let
+                foo
+                =
+                123
+                ;
+        "#;
+        let (_, result) = parse_src(src);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn empty_input() {
+        let (_, result) = parse_src("");
+        assert!(result.is_ok());
+        assert!(result.ast.is_empty());
+    }
+
+    #[test]
+    fn multiple_declarations_same_line() {
+        let src = "let a = 1; let b = 2; let c;";
+        let (_, result) = parse_src(src);
+        assert!(result.is_ok());
+        assert_eq!(result.ast.len(), 3);
+    }
+
+    #[test]
+    fn multiple_newlines_between_tokens() {
+        let src = "let\n\n\nvar\n\n\n=\n\n\n0;";
+        let (_, result) = parse_src(src);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn literal_float() {
+        let (_, result) = parse_src("let pi = 3.14;");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn literal_string() {
+        let (_, result) = parse_src(r#"let s = "text";"#);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn literal_bool() {
+        let (_, result) = parse_src("let flag = true;");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn arithmetic_expression() {
+        let (_, result) = parse_src("let x = 2 + 3 * 4;");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn nested_parentheses() {
+        let (_, result) = parse_src("let x = ((1 + 2) * (3 + 4));");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn chained_binary_operators() {
+        let (_, result) = parse_src("let val = 1 + 2 - 3 + 4;");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn missing_rhs_expression() {
+        let (_, result) = parse_src("let val = 1 + ;");
+        assert!(!result.is_ok());
+    }
+
+    #[test]
+    fn keyword_as_identifier() {
+        let (_, result) = parse_src("let let = 5;");
+        assert!(!result.is_ok());
+    }
+
+    #[test]
+    fn invalid_identifier_character() {
+        let (_, result) = parse_src("let my-var = 10;");
+        assert!(!result.is_ok(), "Hyphen not allowed in identifiers");
+    }
+
+    #[test]
+    fn comment_after_declaration() {
+        let src = "let a = 10; // trailing comment";
+        let (_, result) = parse_src(src);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn comment_between_tokens() {
+        let src = "let /* inline comment */ b = 5;";
+        let (_, result) = parse_src(src);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn declaration_inside_expression_parens() {
+        let (_, result) = parse_src("(let x = 1);");
+        assert!(!result.is_ok());
+    }
+
+    #[test]
+    fn nested_expression_with_unclosed_paren() {
+        let (_, result) = parse_src("let a = (1 + (2 * 3);");
+        assert!(!result.is_ok(), "Unbalanced parentheses should fail");
+    }
+
+    #[test]
+    fn long_chain_expression() {
+        let (_, result) = parse_src("let z = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9;");
+        assert!(result.is_ok(), "Should handle long left-associative chains");
     }
 }

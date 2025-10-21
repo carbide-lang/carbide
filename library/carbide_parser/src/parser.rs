@@ -1,4 +1,3 @@
-
 use carbide_lexer::keywords::Keywords;
 use carbide_lexer::operators::BinaryOperators;
 use carbide_lexer::tokens::{SourceLocation, Token, Tokens};
@@ -184,7 +183,7 @@ impl<'a> CarbideParser<'a> {
 }
 
 impl CarbideParser<'_> {
-    /// Attempt to parse a statement
+    /// Attempt to parse a [`Statement`]
     ///
     /// # Errors
     /// Returns `Err` if parsing the tokens fail
@@ -203,7 +202,7 @@ impl CarbideParser<'_> {
         }
     }
 
-    /// Attempt to parse a `let` statement
+    /// Attempt to parse a `let` [`Statement`]
     ///
     /// # Errors
     /// Returns `Err` if parsing the tokens fail
@@ -222,7 +221,16 @@ impl CarbideParser<'_> {
 
         let initializer =
             if self.match_token(|t| matches!(t, Tokens::BinaryOperator(BinaryOperators::Eq))) {
-                Some(self.parse_expression()?)
+                // Parse initializer
+                match self.parse_expression() {
+                    Ok(expr) => Some(expr),
+                    Err(_) => {
+                        // Instead of returning UnexpectedToken, wrap with InvalidAssignmentTarget
+                        return Err(Box::new(CarbideParserError::InvalidAssignmentTarget(
+                            self.current_location(),
+                        )));
+                    }
+                }
             } else {
                 None
             };
@@ -231,7 +239,6 @@ impl CarbideParser<'_> {
 
         Ok(Statement::LetDeclaration { name, initializer })
     }
-
     /// Attempt to parse a function declaration
     ///
     /// # Errors
@@ -556,6 +563,11 @@ impl CarbideParser<'_> {
                 Tokens::Identifier(name) => {
                     let ident = (*name).to_string();
                     self.advance();
+
+                    if ident == "true" || ident == "false" {
+                        return Ok(Expression::Literal(LiteralValue::Bool(ident == "true")));
+                    }
+
                     Ok(Expression::Identifier(ident))
                 }
                 Tokens::LeftParen => {
