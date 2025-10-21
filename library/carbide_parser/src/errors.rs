@@ -1,6 +1,6 @@
 use ariadne::{Color, Label, Report, ReportKind, Span};
 use carbide_errors::{
-    codes::{E1000, E1001, E1002, E1010, E1011, E1020, E1021, E1030, E1040, E1041, E1042},
+    codes::{E1001, E1002, E1010, E1011, E1020, E1021, E1030, E1040, E1041, E1042, E1100},
     error::CarbideError,
 };
 use carbide_lexer::errors::ErrorSpan;
@@ -61,7 +61,7 @@ impl CarbideError for CarbideParserError {
             Self::BreakOutsideLoop(_) => E1040,
             Self::ContinueOutsideLoop(_) => E1041,
             Self::ReturnOutsideFunction(_) => E1042,
-            _ => E1000,
+            Self::CastFailed(_, _) => E1100,
         }
     }
 
@@ -91,7 +91,9 @@ impl CarbideError for CarbideParserError {
             Self::BreakOutsideLoop(_) => Some("`break` can only appear inside a loop."),
             Self::ContinueOutsideLoop(_) => Some("`continue` can only appear inside a loop."),
             Self::ReturnOutsideFunction(_) => Some("`return` can only appear inside a function."),
-            _ => None,
+            Self::CastFailed(_, _) => {
+                Some("This is a compiler bug, please open an issue on github")
+            }
         }
     }
 
@@ -99,6 +101,7 @@ impl CarbideError for CarbideParserError {
         format!("{self}")
     }
 
+    #[allow(clippy::too_many_lines)]
     fn report(&'_ self, file: &str, src: &str) -> Result<Report<'_, Self::Span>, Self>
     where
         Self: Sized,
@@ -126,7 +129,15 @@ impl CarbideError for CarbideParserError {
 
             Self::UnexpectedToken { expected, found } => {
                 let range = found.span.clone();
-                let span = ErrorSpan::new(file, range.start as usize, range.end as usize);
+                let span = ErrorSpan::new(
+                    file,
+                    usize::try_from(range.start).map_err(|_| {
+                        CarbideParserError::CastFailed(range.start.to_string(), "usize".to_string())
+                    })?,
+                    usize::try_from(range.end).map_err(|_| {
+                        CarbideParserError::CastFailed(range.end.to_string(), "usize".to_string())
+                    })?,
+                );
                 Report::build(ReportKind::Error, span.clone())
                     .with_code(self.code().to_string())
                     .with_message(format!("Unexpected token `{}`", found.src))
@@ -139,7 +150,21 @@ impl CarbideError for CarbideParserError {
             }
 
             Self::ExpectedIdentifier(found) => {
-                let span = ErrorSpan::new(file, found.span.start as usize, found.span.end as usize);
+                let span = ErrorSpan::new(
+                    file,
+                    usize::try_from(found.span.start).map_err(|_| {
+                        CarbideParserError::CastFailed(
+                            found.span.start.to_string(),
+                            "usize".to_string(),
+                        )
+                    })?,
+                    usize::try_from(found.span.end).map_err(|_| {
+                        CarbideParserError::CastFailed(
+                            found.span.end.to_string(),
+                            "usize".to_string(),
+                        )
+                    })?,
+                );
                 Report::build(ReportKind::Error, span.clone())
                     .with_code(self.code().to_string())
                     .with_message("Expected identifier")
@@ -216,11 +241,11 @@ impl CarbideError for CarbideParserError {
                     )
             }
 
-            other => {
+            CarbideParserError::CastFailed(_, _) => {
                 let span = ErrorSpan::new(file, 0, 1);
                 Report::build(ReportKind::Error, span.clone())
-                    .with_code(other.code().to_string())
-                    .with_message(other.message())
+                    .with_code(self.code().to_string())
+                    .with_message(self.message())
                     .with_label(
                         Label::new(span.clone())
                             .with_message("Error occurred here")

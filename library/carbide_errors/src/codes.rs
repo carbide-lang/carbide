@@ -24,6 +24,7 @@ macro_rules! error_codes {
             E0006: 0006, // Lexer::InvalidNumber
 
             E1000: 1000, // Parser::Generic
+            E1100: 1100, // Parser::CastFailed
             E1001: 1001, // Parser::UnexpectedEOF
             E1002: 1002, // Parser::UnexpectedToken
             E1010: 1010, // Parser::ExpectedIdentifier

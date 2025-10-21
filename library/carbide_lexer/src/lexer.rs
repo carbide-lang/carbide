@@ -303,6 +303,7 @@ impl<'a> CarbideLexer<'a> {
     ///
     /// # Errors
     /// Returns `Err` if fails
+    #[allow(clippy::too_many_lines)]
     fn lex_number(
         &mut self,
         start: u64,
