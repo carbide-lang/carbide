@@ -2,7 +2,7 @@
 mod variables {
     use carbide_lexer::lexer::CarbideLexer;
     use carbide_parser::{
-        nodes::{Expression, LiteralValue, Statement},
+        nodes::{Expression, LiteralValue, Statement, Type},
         parser::CarbideParser,
     };
 
@@ -24,6 +24,7 @@ mod variables {
             result.ast,
             vec![Statement::LetDeclaration {
                 name: "my_var".into(),
+                type_annotation: None,
                 initializer: Some(Expression::Literal(LiteralValue::Int(0))),
             }]
         );
@@ -37,9 +38,30 @@ mod variables {
             result.ast,
             vec![Statement::LetDeclaration {
                 name: "my_var".into(),
+                type_annotation: None,
                 initializer: None,
             }]
         );
+    }
+
+    #[test]
+    fn declaration_typed() {
+        let (_, result) = parse_src("let my_var: int = 0;");
+        assert!(result.is_ok());
+        assert_eq!(
+            result.ast,
+            vec![Statement::LetDeclaration {
+                name: "my_var".into(),
+                type_annotation: Some(Type::named("int")),
+                initializer: Some(Expression::Literal(LiteralValue::Int(0))),
+            }]
+        );
+    }
+
+    #[test]
+    fn declaration_typed_no_named() {
+        let (_, result) = parse_src("let my_var: = 0;");
+        assert!(!result.is_ok());
     }
 
     #[test]

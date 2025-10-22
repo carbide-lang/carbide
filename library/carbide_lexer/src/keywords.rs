@@ -36,4 +36,5 @@ macro_rules! define_keywords {
 define_keywords! {
     Let => "let",
     Fn  => "fn",
+    Return => "return",
 }

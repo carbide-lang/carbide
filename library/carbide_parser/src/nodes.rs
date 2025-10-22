@@ -1,5 +1,27 @@
 use carbide_lexer::operators::{BinaryOperators, UnaryOperators};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Type {
+    /// Basic types like `int`, `float`, `string`, `bool`
+    Named(String),
+    /// Function type: (`param_types`) -> `return_type`
+    Function {
+        parameters: Vec<Type>,
+        return_type: Box<Type>,
+    },
+    /// Array type: [`element_type`]
+    Array(Box<Type>),
+    /// Unit type
+    Unit,
+}
+
+impl Type {
+    #[must_use]
+    pub fn named(name: impl Into<String>) -> Self {
+        Self::Named(name.into())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum LiteralValue {
     Int(i64),
@@ -70,17 +92,25 @@ pub enum StringPart {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct Parameter {
+    pub name: String,
+    pub type_annotation: Option<Type>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    /// Variable declaration, like `let name = value;`
+    /// Variable declaration, like `let name: type = value;`
     LetDeclaration {
         name: String,
+        type_annotation: Option<Type>,
         initializer: Option<Expression>,
     },
 
     /// Function declaration
     FunctionDeclaration {
         name: String,
-        parameters: Vec<String>,
+        parameters: Vec<Parameter>,
+        return_type: Option<Type>,
         body: Vec<Statement>,
     },
 

@@ -252,6 +252,13 @@ impl<'a> CarbideLexer<'a> {
                 continue;
             }
 
+            if (ch == '-' || ch == '=')
+                && let Ok(Some(token)) = self.lex_arrow(start, start_loc)
+            {
+                tokens.push(token);
+                continue;
+            }
+
             if BinaryOperators::starts_with(ch) || UnaryOperators::starts_with(ch) {
                 match self.lex_operator(start, start_loc) {
                     Ok(token) => tokens.push(token),
@@ -749,5 +756,50 @@ impl<'a> CarbideLexer<'a> {
         }
 
         Ok(parts)
+    }
+}
+
+impl<'a> CarbideLexer<'a> {
+    /// Attempt to lex arrow operators (`->`, `=>`)
+    ///
+    /// # Errors
+    /// Returns `Err` if parsing fails
+    fn lex_arrow(
+        &mut self,
+        start: u64,
+        start_loc: SourceLocation,
+    ) -> Result<Option<Token<'a>>, Box<CarbideLexerError>> {
+        let first_ch = self
+            .peek()
+            .ok_or(Box::new(CarbideLexerError::UnexpectedEOF(start_loc)))?;
+        if first_ch != '-' && first_ch != '=' {
+            return Ok(None);
+        }
+
+        if self.src[self.pos..].starts_with("->") || self.src[self.pos..].starts_with("=>") {
+            let arrow = if self.src[self.pos..].starts_with("->") {
+                self.pos += 2;
+                self.column += 2;
+                Tokens::ThinArrow
+            } else {
+                self.pos += 2;
+                self.column += 2;
+                Tokens::FatArrow
+            };
+
+            let end = self.pos as u64;
+            let end_loc = self.current_location();
+            let slice = &self.src[usize_from(start)?..usize_from(end)?];
+
+            return Ok(Some(Token {
+                token_type: arrow,
+                start: start_loc,
+                end: end_loc,
+                span: start..end,
+                src: slice,
+            }));
+        }
+
+        Ok(None)
     }
 }

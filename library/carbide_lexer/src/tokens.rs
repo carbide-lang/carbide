@@ -48,6 +48,11 @@ pub enum Tokens<'a> {
     BinaryOperator(BinaryOperators),
     /// A unary operator, like `!`
     UnaryOperator(UnaryOperators),
+    /// A type identifier, like `string`
+    TypeIdentifier(&'a str),
+
+    ThinArrow,
+    FatArrow,
 
     LeftParen,
     RightParen,
@@ -59,6 +64,7 @@ pub enum Tokens<'a> {
     Colon,
     Period,
     Comma,
+    Tilde,
 }
 
 macro_rules! define_single_char_tokens {
@@ -96,6 +102,7 @@ define_single_char_tokens! {
     Colon => ':',
     Period => '.',
     Comma => ',',
+    Tilde => '~',
 }
 
 pub type Span = Range<u64>;

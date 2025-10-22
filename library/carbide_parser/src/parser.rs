@@ -3,7 +3,7 @@ use carbide_lexer::operators::BinaryOperators;
 use carbide_lexer::tokens::{SourceLocation, Token, Tokens};
 
 use crate::errors::CarbideParserError;
-use crate::nodes::{Expression, LiteralValue, Statement, StringPart};
+use crate::nodes::{Expression, LiteralValue, Parameter, Statement, StringPart, Type};
 
 pub struct CarbideParser<'a> {
     tokens: Vec<Token<'a>>,
@@ -11,6 +11,7 @@ pub struct CarbideParser<'a> {
 }
 
 /// Result type for parsing
+#[derive(Debug, Clone)]
 pub struct ParseResult {
     pub ast: Vec<Statement>,
     pub errors: Vec<Box<CarbideParserError>>,
@@ -137,8 +138,7 @@ impl<'a> CarbideParser<'a> {
                 && let Tokens::Keyword(kw) = &token.token_type
             {
                 match kw {
-                    Keywords::Fn | Keywords::Let => return,
-                    // _ => {}
+                    Keywords::Fn | Keywords::Let | Keywords::Return => return,
                 }
             }
 
@@ -183,6 +183,36 @@ impl<'a> CarbideParser<'a> {
 }
 
 impl CarbideParser<'_> {
+    /// Attempt to parse a type annotation
+    ///
+    /// # Errors
+    /// Returns `Err` if parsing the type fails
+    fn parse_type(&mut self) -> Result<Type, Box<CarbideParserError>> {
+        if let Some(token) = self.peek() {
+            match &token.token_type {
+                Tokens::TypeIdentifier(name) | Tokens::Identifier(name) => {
+                    let type_name = (*name).to_string();
+                    self.advance();
+                    Ok(Type::Named(type_name))
+                }
+                Tokens::LeftBracket => {
+                    self.advance();
+                    let element_type = self.parse_type()?;
+                    self.expect(|t| matches!(t, Tokens::RightBracket), "]")?;
+                    Ok(Type::Array(Box::new(element_type)))
+                }
+                _ => Err(Box::new(CarbideParserError::UnexpectedToken {
+                    expected: "type".to_string(),
+                    found: unsafe { std::mem::transmute::<Token<'_>, Token<'_>>(token.clone()) },
+                })),
+            }
+        } else {
+            Err(Box::new(CarbideParserError::UnexpectedEOF(
+                self.current_location(),
+            )))
+        }
+    }
+
     /// Attempt to parse a [`Statement`]
     ///
     /// # Errors
@@ -192,6 +222,7 @@ impl CarbideParser<'_> {
             match &token.token_type {
                 Tokens::Keyword(Keywords::Let) => self.parse_let_statement(),
                 Tokens::Keyword(Keywords::Fn) => self.parse_function_declaration(),
+                Tokens::Keyword(Keywords::Return) => self.parse_return(),
                 Tokens::LeftBrace => self.parse_block_statement(),
                 _ => self.parse_expression_statement(),
             }
@@ -219,13 +250,18 @@ impl CarbideParser<'_> {
             })));
         };
 
+        // Parse optional type annotation
+        let type_annotation = if self.match_token(|t| matches!(t, Tokens::Colon)) {
+            Some(self.parse_type()?)
+        } else {
+            None
+        };
+
         let initializer =
             if self.match_token(|t| matches!(t, Tokens::BinaryOperator(BinaryOperators::Eq))) {
-                // Parse initializer
                 match self.parse_expression() {
                     Ok(expr) => Some(expr),
                     Err(_) => {
-                        // Instead of returning UnexpectedToken, wrap with InvalidAssignmentTarget
                         return Err(Box::new(CarbideParserError::InvalidAssignmentTarget(
                             self.current_location(),
                         )));
@@ -237,66 +273,10 @@ impl CarbideParser<'_> {
 
         self.expect(|t| matches!(t, Tokens::Semicolon), ";")?;
 
-        Ok(Statement::LetDeclaration { name, initializer })
-    }
-    /// Attempt to parse a function declaration
-    ///
-    /// # Errors
-    /// Returns `Err` if parsing the tokens fail
-    fn parse_function_declaration(&mut self) -> Result<Statement, Box<CarbideParserError>> {
-        self.expect(|t| matches!(t, Tokens::Keyword(Keywords::Fn)), "fn")?;
-
-        let name_token = self.expect(|t| matches!(t, Tokens::Identifier(_)), "identifier")?;
-
-        let name = if let Tokens::Identifier(n) = &name_token.token_type {
-            (*n).to_string()
-        } else {
-            return Err(Box::new(CarbideParserError::ExpectedIdentifier(unsafe {
-                std::mem::transmute::<Token<'_>, Token<'_>>(name_token.clone())
-            })));
-        };
-
-        self.expect(|t| matches!(t, Tokens::LeftParen), "(")?;
-
-        let mut parameters = Vec::new();
-        if !self.check(|t| matches!(t, Tokens::RightParen)) {
-            loop {
-                let param_token =
-                    self.expect(|t| matches!(t, Tokens::Identifier(_)), "parameter name")?;
-
-                if let Tokens::Identifier(param) = &param_token.token_type {
-                    parameters.push((*param).to_string());
-                }
-
-                if !self.match_token(|t| matches!(t, Tokens::Comma)) {
-                    break;
-                }
-            }
-        }
-
-        self.expect(|t| matches!(t, Tokens::RightParen), ")")?;
-
-        let body = if self.check(|t| matches!(t, Tokens::LeftBrace)) {
-            if let Statement::Block(stmts) = self.parse_block_statement()? {
-                stmts
-            } else {
-                Vec::new()
-            }
-        } else {
-            return Err(Box::new(CarbideParserError::UnexpectedToken {
-                expected: "function body".to_string(),
-                found: unsafe {
-                    std::mem::transmute::<Token<'_>, Token<'_>>(
-                        self.peek().unwrap_unchecked().clone(),
-                    )
-                },
-            }));
-        };
-
-        Ok(Statement::FunctionDeclaration {
+        Ok(Statement::LetDeclaration {
             name,
-            parameters,
-            body,
+            type_annotation,
+            initializer,
         })
     }
 
@@ -471,6 +451,93 @@ impl CarbideParser<'_> {
 
         self.parse_call()
     }
+}
+
+impl CarbideParser<'_> {
+    /// Attempt to parse a function declaration
+    ///
+    /// # Errors
+    /// Returns `Err` if parsing the tokens fail
+    fn parse_function_declaration(&mut self) -> Result<Statement, Box<CarbideParserError>> {
+        self.expect(|t| matches!(t, Tokens::Keyword(Keywords::Fn)), "fn")?;
+
+        let name_token = self.expect(|t| matches!(t, Tokens::Identifier(_)), "identifier")?;
+
+        let name = if let Tokens::Identifier(n) = &name_token.token_type {
+            (*n).to_string()
+        } else {
+            return Err(Box::new(CarbideParserError::ExpectedIdentifier(unsafe {
+                std::mem::transmute::<Token<'_>, Token<'_>>(name_token.clone())
+            })));
+        };
+
+        self.expect(|t| matches!(t, Tokens::LeftParen), "(")?;
+
+        let mut parameters = Vec::new();
+        if !self.check(|t| matches!(t, Tokens::RightParen)) {
+            loop {
+                let param_token =
+                    self.expect(|t| matches!(t, Tokens::Identifier(_)), "parameter name")?;
+
+                let param_name = if let Tokens::Identifier(param) = &param_token.token_type {
+                    (*param).to_string()
+                } else {
+                    return Err(Box::new(CarbideParserError::ExpectedIdentifier(unsafe {
+                        std::mem::transmute::<Token<'_>, Token<'_>>(param_token.clone())
+                    })));
+                };
+
+                // Parse optional type annotation for parameter
+                let type_annotation = if self.match_token(|t| matches!(t, Tokens::Colon)) {
+                    Some(self.parse_type()?)
+                } else {
+                    None
+                };
+
+                parameters.push(Parameter {
+                    name: param_name,
+                    type_annotation,
+                });
+
+                if !self.match_token(|t| matches!(t, Tokens::Comma)) {
+                    break;
+                }
+            }
+        }
+
+        self.expect(|t| matches!(t, Tokens::RightParen), ")")?;
+
+        // Parse optional return type annotation
+        let return_type = if self.match_token(|t| matches!(t, Tokens::ThinArrow)) {
+            Some(self.parse_type()?)
+        } else {
+            None
+        };
+
+        let body = if self.check(|t| matches!(t, Tokens::LeftBrace)) {
+            if let Statement::Block(stmts) = self.parse_block_statement()? {
+                stmts
+            } else {
+                Vec::new()
+            }
+        } else {
+            return Err(Box::new(CarbideParserError::UnexpectedToken {
+                expected: "function body".to_string(),
+                found: unsafe {
+                    std::mem::transmute::<Token<'_>, Token<'_>>(
+                        self.peek().unwrap_unchecked().clone(),
+                    )
+                },
+            }));
+        };
+
+        Ok(Statement::FunctionDeclaration {
+            name,
+            parameters,
+            return_type,
+            body,
+        })
+    }
 
     /// Attempt to parse a function call
     ///
@@ -506,7 +573,9 @@ impl CarbideParser<'_> {
 
         Ok(expr)
     }
+}
 
+impl CarbideParser<'_> {
     /// Attempt to parse a function call
     ///
     /// # Errors
@@ -633,5 +702,20 @@ impl CarbideParser<'_> {
         }
 
         Ok(result)
+    }
+}
+
+impl CarbideParser<'_> {
+    /// Attempt to parse a return statement
+    ///
+    /// # Errors
+    /// Returns `Err` if parsing the tokens fail
+    pub fn parse_return(&mut self) -> Result<Statement, Box<CarbideParserError>> {
+        self.expect(|t| matches!(t, Tokens::Keyword(Keywords::Return)), "return")?;
+
+        let return_expr = self.parse_expression()?;
+        self.expect(|t| matches!(t, Tokens::Semicolon), ";")?;
+
+        Ok(Statement::Return(Some(return_expr)))
     }
 }
